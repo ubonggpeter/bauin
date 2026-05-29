@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #1A6659;
+    --color-primary-dark: #0E4A3D;
+    --color-primary-light: #2B8A72;
+    --color-bg-light: #F5F7F6;
+    --color-gold: #F0B429;
+    --color-text-dark: #1A1A2E;
+    --color-border: #E0E0E0;
+  }
+
+  body {
+    @apply bg-bg-light text-text-dark;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
