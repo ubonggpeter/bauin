@@ -12,10 +12,12 @@ datasource db {
 // ╚══════════════════════════════════════════════╝
 
 enum UserRole {
+  SUPER_ADMIN
   ADMIN
-  MODERATOR
+  WORKER
   DISTRIBUTOR
-  MEMBER
+  SELLER
+  VIEWER
 }
 
 enum UserRank {
@@ -136,7 +138,7 @@ model User {
   name          String
   email         String    @unique
   passwordHash  String    @map("password_hash")
-  role          UserRole  @default(MEMBER)
+  role          UserRole  @default(VIEWER)
   referralCode  String    @unique @map("referral_code")
   referredById  String?   @map("referred_by_id")
   referredBy    User?     @relation("UserReferrals", fields: [referredById], references: [id])
@@ -147,13 +149,15 @@ model User {
   phoneNumber   String?   @map("phone_number")
   country       String?
   avatarUrl     String?   @map("avatar_url")
-  emailVerifiedAt  DateTime? @map("email_verified_at")
-  resetToken       String?   @map("reset_token")
-  resetTokenExpiry DateTime? @map("reset_token_expiry")
-  isActive         Boolean   @default(true) @map("is_active")
-  lastLoginAt      DateTime? @map("last_login_at")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  emailVerifiedAt    DateTime? @map("email_verified_at")
+  resetToken         String?   @map("reset_token")
+  resetTokenExpiry   DateTime? @map("reset_token_expiry")
+  twoFactorSecret    String?   @map("two_factor_secret")
+  twoFactorEnabled   Boolean   @default(false) @map("two_factor_enabled")
+  isActive           Boolean   @default(true) @map("is_active")
+  lastLoginAt        DateTime? @map("last_login_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
 
   wallet                 Wallet?
   userCategories         UserCategory[]
@@ -170,6 +174,7 @@ model User {
   investments            Investment[]
   toolPoolMemberships    ToolPoolMember[]
   notifications          Notification[]
+  auditLogs              AuditLog[]       @relation("AuditLogAdmin")
 
   @@index([referredById])
   @@index([referralCode])
@@ -708,6 +713,28 @@ model PlatformSettings {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("platform_settings")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║              AUDIT LOG                       ║
+// ╚══════════════════════════════════════════════╝
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  adminId     String   @map("admin_id")
+  admin       User     @relation("AuditLogAdmin", fields: [adminId], references: [id])
+  action      String
+  targetType  String   @map("target_type")
+  targetId    String   @map("target_id")
+  oldValue    Json?    @map("old_value")
+  newValue    Json?    @map("new_value")
+  ip          String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([adminId])
+  @@index([targetType, targetId])
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
 }
 
 // ╔══════════════════════════════════════════════╗

@@ -2,17 +2,14 @@ import { Router } from "express";
 import multer from "multer";
 import { authenticate } from "../middleware/authenticate";
 import { requireAdmin } from "../middleware/requireAdmin";
+import { withRole } from "../middleware/withRole";
 import { uploadFile, type UploadResult } from "../services/storage.service";
 import { generatePreview } from "../services/ffmpeg.service";
-import { prisma } from "../utils/prisma";
 import type { AuthRequest } from "../middleware/authenticate";
 
 const router = Router();
 
-// Store files in memory; for very large videos we stream to disk via limits
-const upload = multer({
-  storage: multer.memoryStorage(),
-});
+const upload = multer({ storage: multer.memoryStorage() });
 
 const videoUpload = multer({
   storage: multer.memoryStorage(),
@@ -23,26 +20,6 @@ const imageUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
 });
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function requireRole(...roles: string[]) {
-  return async (req: AuthRequest, res: any, next: any) => {
-    if (!req.userId) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    const user = await prisma.user.findUnique({
-      where: { id: req.userId },
-      select: { role: true, isActive: true },
-    });
-    if (!user || !user.isActive || !roles.includes(user.role)) {
-      res.status(403).json({ error: "Insufficient permissions" });
-      return;
-    }
-    next();
-  };
-}
 
 // ── POST /api/upload/pdf — admin only ─────────────────────────────────────────
 
@@ -113,7 +90,7 @@ router.post(
 router.post(
   "/video",
   authenticate,
-  requireRole("ADMIN", "MODERATOR", "DISTRIBUTOR"),
+  withRole("SUPER_ADMIN", "ADMIN", "SELLER", "DISTRIBUTOR"),
   videoUpload.single("file"),
   async (req: AuthRequest, res) => {
     const file = req.file;
