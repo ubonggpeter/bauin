@@ -15,6 +15,7 @@ import { errorHandler } from "./middleware/errorHandler";
 import { rateLimiter } from "./middleware/rateLimiter";
 import { seedAutoApprovalRules } from "./scripts/seed-auto-approval";
 import { startEmailProcessor } from "./services/email";
+import { initSockets } from "./sockets";
 
 const app = express();
 const httpServer = createServer(app);
@@ -50,13 +51,8 @@ app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date()
 // Error handler
 app.use(errorHandler);
 
-// Socket.IO
-io.on("connection", (socket) => {
-  socket.on("join", (userId: string) => {
-    socket.join(`user:${userId}`);
-  });
-  socket.on("disconnect", () => {});
-});
+// Socket.IO namespaces (/quiz, /notifications, /betting) with JWT auth
+initSockets(io);
 
 const PORT = process.env.PORT ?? 4000;
 httpServer.listen(PORT, () => {
