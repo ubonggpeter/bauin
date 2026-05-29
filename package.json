@@ -14,7 +14,8 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "seed:auto-approval": "ts-node --project server/tsconfig.json server/src/scripts/seed-auto-approval.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.14.0",

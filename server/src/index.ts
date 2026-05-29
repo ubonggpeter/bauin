@@ -9,8 +9,10 @@ import usersRouter from "./routes/users";
 import walletRouter from "./routes/wallet";
 import networkRouter from "./routes/network";
 import paymentsRouter from "./routes/payments";
+import adminAutoApprovalRouter from "./routes/admin/auto-approval";
 import { errorHandler } from "./middleware/errorHandler";
 import { rateLimiter } from "./middleware/rateLimiter";
+import { seedAutoApprovalRules } from "./scripts/seed-auto-approval";
 
 const app = express();
 const httpServer = createServer(app);
@@ -38,6 +40,7 @@ app.use("/api/users", usersRouter);
 app.use("/api/wallet", walletRouter);
 app.use("/api/network", networkRouter);
 app.use("/api/payments", paymentsRouter);
+app.use("/api/admin/auto-approval", adminAutoApprovalRouter);
 
 app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
 
@@ -55,6 +58,10 @@ io.on("connection", (socket) => {
 const PORT = process.env.PORT ?? 4000;
 httpServer.listen(PORT, () => {
   console.log(`BAUIN server running on port ${PORT}`);
+  // Seed default auto-approval rules on every cold start (idempotent)
+  seedAutoApprovalRules().catch((e) =>
+    console.error("[seed] Auto-approval rules failed:", e)
+  );
 });
 
 export default app;

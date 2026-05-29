@@ -654,7 +654,31 @@ model AutoApprovalRule {
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
+  logs AutoApprovalLog[]
+
+  @@index([ruleType])
   @@map("auto_approval_rules")
+}
+
+// Decision audit trail — every checkAutoApproval call is logged here
+model AutoApprovalLog {
+  id              String            @id @default(cuid())
+  ruleId          String?           @map("rule_id")
+  rule            AutoApprovalRule? @relation(fields: [ruleId], references: [id])
+  userId          String            @map("user_id")
+  requestType     String            @map("request_type")
+  requestData     Json              @map("request_data")
+  approved        Boolean
+  decision        String            // AUTO_APPROVED | MANUAL_REVIEW | DENIED
+  failedCondition Json?             @map("failed_condition")
+  isSampleReview  Boolean           @default(false) @map("is_sample_review")
+  reason          String?
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([requestType])
+  @@index([createdAt])
+  @@map("auto_approval_logs")
 }
 
 model PlatformSettings {
