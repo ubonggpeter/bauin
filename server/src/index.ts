@@ -10,6 +10,7 @@ import walletRouter from "./routes/wallet";
 import networkRouter from "./routes/network";
 import paymentsRouter from "./routes/payments";
 import adminAutoApprovalRouter from "./routes/admin/auto-approval";
+import uploadRouter from "./routes/upload";
 import { errorHandler } from "./middleware/errorHandler";
 import { rateLimiter } from "./middleware/rateLimiter";
 import { seedAutoApprovalRules } from "./scripts/seed-auto-approval";
@@ -41,6 +42,7 @@ app.use("/api/wallet", walletRouter);
 app.use("/api/network", networkRouter);
 app.use("/api/payments", paymentsRouter);
 app.use("/api/admin/auto-approval", adminAutoApprovalRouter);
+app.use("/api/upload", uploadRouter);
 
 app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
 
