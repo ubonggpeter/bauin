@@ -8,6 +8,7 @@ import authRouter from "./routes/auth";
 import usersRouter from "./routes/users";
 import walletRouter from "./routes/wallet";
 import networkRouter from "./routes/network";
+import paymentsRouter from "./routes/payments";
 import { errorHandler } from "./middleware/errorHandler";
 import { rateLimiter } from "./middleware/rateLimiter";
 
@@ -24,6 +25,10 @@ export const io = new SocketIOServer(httpServer, {
 // Middleware
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL ?? "http://localhost:3000", credentials: true }));
+
+// Raw body for Paystack webhook signature verification — must precede express.json()
+app.use("/api/payments/webhook", express.raw({ type: "*/*" }));
+
 app.use(express.json());
 app.use(rateLimiter);
 
@@ -32,6 +37,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/wallet", walletRouter);
 app.use("/api/network", networkRouter);
+app.use("/api/payments", paymentsRouter);
 
 app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
 
