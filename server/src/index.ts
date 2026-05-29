@@ -14,6 +14,7 @@ import uploadRouter from "./routes/upload";
 import { errorHandler } from "./middleware/errorHandler";
 import { rateLimiter } from "./middleware/rateLimiter";
 import { seedAutoApprovalRules } from "./scripts/seed-auto-approval";
+import { startEmailProcessor } from "./services/email";
 
 const app = express();
 const httpServer = createServer(app);
@@ -64,6 +65,8 @@ httpServer.listen(PORT, () => {
   seedAutoApprovalRules().catch((e) =>
     console.error("[seed] Auto-approval rules failed:", e)
   );
+  // Start Bull email queue worker
+  startEmailProcessor();
 });
 
 export default app;

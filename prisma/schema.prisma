@@ -109,6 +109,24 @@ enum ToolPoolMemberRole {
   MEMBER
 }
 
+enum NotificationType {
+  EMAIL_VERIFICATION
+  WELCOME_AFTER_PAYMENT
+  CERTIFICATION_PASSED
+  CERTIFICATION_FAILED
+  STORY_APPROVED
+  STORY_SALE
+  QUIZ_WIN
+  BET_WIN
+  BET_LOSS
+  REFERRAL_EARNED
+  REFERRAL_VIEWER_UNLOCKED
+  WITHDRAWAL_PROCESSED
+  INVESTMENT_FUNDED
+  WEEKLY_LEADERBOARD
+  ANNOUNCEMENT
+}
+
 // ╔══════════════════════════════════════════════╗
 // ║               CORE — USER                    ║
 // ╚══════════════════════════════════════════════╝
@@ -151,6 +169,7 @@ model User {
   investmentRequests     InvestmentRequest[]
   investments            Investment[]
   toolPoolMemberships    ToolPoolMember[]
+  notifications          Notification[]
 
   @@index([referredById])
   @@index([referralCode])
@@ -689,4 +708,25 @@ model PlatformSettings {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("platform_settings")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║             NOTIFICATIONS                    ║
+// ╚══════════════════════════════════════════════╝
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  user      User             @relation(fields: [userId], references: [id])
+  type      NotificationType
+  title     String
+  body      String           @db.Text
+  metadata  Json?
+  isRead    Boolean          @default(false) @map("is_read")
+  emailSent Boolean          @default(false) @map("email_sent")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
 }

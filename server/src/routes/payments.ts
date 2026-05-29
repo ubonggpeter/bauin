@@ -12,7 +12,7 @@ import {
 } from "../services/paystack.service";
 import { creditWallet, recordExternalPayment } from "../services/wallet.service";
 import { incrementPrizePool } from "../utils/redis";
-import { sendWelcomeEmail } from "../utils/email";
+import { enqueueEmail } from "../services/email";
 
 const router = Router();
 
@@ -157,11 +157,20 @@ async function handleRegistration(
     }
   }
 
-  // 3 — Welcome email
+  // 3 — Welcome email + in-app notification
   if (user?.email) {
-    sendWelcomeEmail(user.email, user.name, category.name).catch((e) =>
-      console.error("[welcome-email]", e)
-    );
+    enqueueEmail({
+      to: user.email,
+      userId: user_id,
+      template: {
+        type: "WELCOME_AFTER_PAYMENT",
+        data: {
+          name: user.name,
+          categoryName: category.name,
+          dashboardUrl: `${process.env.FRONTEND_URL ?? "http://localhost:3000"}/dashboard`,
+        },
+      },
+    }).catch((e) => console.error("[welcome-email]", e));
   }
 }
 
