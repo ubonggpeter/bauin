@@ -7,81 +7,51 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  rank         UserRank @default(MEMBER)
-  referralCode String   @unique
-  referredById String?
-  referredBy   User?    @relation("Referrals", fields: [referredById], references: [id])
-  referrals    User[]   @relation("Referrals")
-  isActive     Boolean  @default(true)
-  isAdmin      Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+// ╔══════════════════════════════════════════════╗
+// ║                   ENUMS                      ║
+// ╚══════════════════════════════════════════════╝
 
-  wallet       Wallet?
-  transactions WalletTransaction[]
-  sessions     Session[]
-
-  @@index([referredById])
-  @@index([referralCode])
-}
-
-model Wallet {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  user       User     @relation(fields: [userId], references: [id])
-  balance    Decimal  @default(0) @db.Decimal(18, 2)
-  totalEarned Decimal @default(0) @db.Decimal(18, 2)
-  updatedAt  DateTime @updatedAt
-}
-
-model WalletTransaction {
-  id          String            @id @default(cuid())
-  userId      String
-  user        User              @relation(fields: [userId], references: [id])
-  type        TransactionType
-  amount      Decimal           @db.Decimal(18, 2)
-  description String
-  status      TransactionStatus @default(PENDING)
-  metadata    Json?
-  createdAt   DateTime          @default(now())
-
-  @@index([userId])
-  @@index([createdAt])
-}
-
-model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  @@index([token])
-}
-
-enum UserRank {
+enum UserRole {
+  ADMIN
+  MODERATOR
+  DISTRIBUTOR
   MEMBER
-  BRONZE
-  SILVER
-  GOLD
-  PLATINUM
-  DIAMOND
-  BILLIONAIRE
-  BILLIONAIRE_ELITE
+}
+
+enum KycStatus {
+  PENDING
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum RetryPolicy {
+  IMMEDIATE
+  AFTER_24H
+  AFTER_7D
+  AFTER_30D
+}
+
+enum CorrectOption {
+  A
+  B
+  C
+  D
 }
 
 enum TransactionType {
-  CREDIT
-  DEBIT
+  DEPOSIT
   WITHDRAWAL
-  BONUS
-  REFERRAL_COMMISSION
+  REFERRAL_BONUS
+  INVESTMENT_RETURN
+  STORY_PURCHASE
+  CATEGORY_REGISTRATION
+  CATEGORY_MONTHLY_FEE
+  CATEGORY_RETRY_FEE
+  BET_STAKE
+  BET_PAYOUT
+  TOOL_POOL_FEE
+  ADJUSTMENT
 }
 
 enum TransactionStatus {
@@ -89,4 +59,595 @@ enum TransactionStatus {
   COMPLETED
   FAILED
   CANCELLED
+}
+
+enum BetType {
+  TOP1
+  TOP3
+  TOP5
+  TOP10
+}
+
+enum BetStatus {
+  OPEN
+  SETTLED
+  CANCELLED
+}
+
+enum ReferralType {
+  WORKER
+  VIEWER
+}
+
+enum InvestmentRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CONVERTED
+}
+
+enum InvestmentStatus {
+  PENDING
+  ACTIVE
+  MATURED
+  CANCELLED
+}
+
+enum ToolPoolMemberRole {
+  OWNER
+  MEMBER
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║               CORE — USER                    ║
+// ╚══════════════════════════════════════════════╝
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  role          UserRole  @default(MEMBER)
+  referralCode  String    @unique @map("referral_code")
+  referredById  String?   @map("referred_by_id")
+  referredBy    User?     @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals     User[]    @relation("UserReferrals")
+  kycStatus     KycStatus @default(PENDING) @map("kyc_status")
+  walletBalance Decimal   @default(0) @db.Decimal(18, 2) @map("wallet_balance")
+  phoneNumber   String?   @map("phone_number")
+  country       String?
+  avatarUrl     String?   @map("avatar_url")
+  isActive      Boolean   @default(true) @map("is_active")
+  lastLoginAt   DateTime? @map("last_login_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  wallet                 Wallet?
+  userCategories         UserCategory[]
+  topicProgress          UserTopicProgress[]
+  testAttempts           TestAttempt[]
+  storyPurchases         StoryPurchase[]
+  distributorCollections DistributorCollection[]
+  quizEntries            QuizEntry[]
+  bets                   Bet[]
+  transactions           Transaction[]
+  referralsGiven         Referral[]        @relation("ReferralReferrer")
+  referralsReceived      Referral[]        @relation("ReferralReferred")
+  investmentRequests     InvestmentRequest[]
+  investments            Investment[]
+  toolPoolMemberships    ToolPoolMember[]
+
+  @@index([referredById])
+  @@index([referralCode])
+  @@map("users")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║           CATEGORY & COURSE TREE             ║
+// ╚══════════════════════════════════════════════╝
+
+model Category {
+  id               String      @id @default(cuid())
+  name             String      @unique
+  slug             String      @unique
+  description      String?     @db.Text
+  registrationFee  Decimal     @db.Decimal(18, 2) @map("registration_fee")
+  monthlyFee       Decimal     @db.Decimal(18, 2) @map("monthly_fee")
+  retryFee         Decimal     @db.Decimal(18, 2) @map("retry_fee")
+  retryPolicy      RetryPolicy @default(IMMEDIATE) @map("retry_policy")
+  passPercentage   Int         @default(70) @map("pass_percentage")
+  questionCount    Int         @default(20) @map("question_count")
+  isActive         Boolean     @default(true) @map("is_active")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  userCategories UserCategory[]
+  courses        Course[]
+  testQuestions  TestQuestion[]
+  testAttempts   TestAttempt[]
+  quizSessions   QuizSession[]
+
+  @@map("categories")
+}
+
+model UserCategory {
+  id               String    @id @default(cuid())
+  userId           String    @map("user_id")
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId       String    @map("category_id")
+  category         Category  @relation(fields: [categoryId], references: [id])
+  subscribedAt     DateTime  @default(now()) @map("subscribed_at")
+  expiresAt        DateTime? @map("expires_at")
+  isActive         Boolean   @default(true) @map("is_active")
+  paidRegistration Boolean   @default(false) @map("paid_registration")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@unique([userId, categoryId])
+  @@index([userId])
+  @@index([categoryId])
+  @@map("user_categories")
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  categoryId  String   @map("category_id")
+  category    Category @relation(fields: [categoryId], references: [id])
+  title       String
+  description String?  @db.Text
+  coverUrl    String?  @map("cover_url")
+  order       Int      @default(0)
+  isPublished Boolean  @default(false) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  topics Topic[]
+
+  @@index([categoryId])
+  @@map("courses")
+}
+
+model Topic {
+  id          String   @id @default(cuid())
+  courseId    String   @map("course_id")
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  description String?  @db.Text
+  order       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  subTopics SubTopic[]
+
+  @@index([courseId])
+  @@map("topics")
+}
+
+model SubTopic {
+  id        String   @id @default(cuid())
+  topicId   String   @map("topic_id")
+  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  title     String
+  content   String?  @db.Text
+  mediaUrl  String?  @map("media_url")
+  order     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  userProgress UserTopicProgress[]
+
+  @@index([topicId])
+  @@map("sub_topics")
+}
+
+model UserTopicProgress {
+  id           String    @id @default(cuid())
+  userId       String    @map("user_id")
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subTopicId   String    @map("sub_topic_id")
+  subTopic     SubTopic  @relation(fields: [subTopicId], references: [id], onDelete: Cascade)
+  completed    Boolean   @default(false)
+  completedAt  DateTime? @map("completed_at")
+  timeSpentSec Int       @default(0) @map("time_spent_sec")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@unique([userId, subTopicId])
+  @@index([userId])
+  @@map("user_topic_progress")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║                   TESTS                      ║
+// ╚══════════════════════════════════════════════╝
+
+model TestQuestion {
+  id            String        @id @default(cuid())
+  categoryId    String        @map("category_id")
+  category      Category      @relation(fields: [categoryId], references: [id])
+  questionText  String        @db.Text @map("question_text")
+  optionA       String        @map("option_a")
+  optionB       String        @map("option_b")
+  optionC       String        @map("option_c")
+  optionD       String        @map("option_d")
+  correctOption CorrectOption @map("correct_option")
+  explanation   String?       @db.Text
+  difficulty    Int           @default(1)
+  isActive      Boolean       @default(true) @map("is_active")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  @@index([categoryId])
+  @@map("test_questions")
+}
+
+// answers_json: { [questionId]: "A" | "B" | "C" | "D" }
+model TestAttempt {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  user         User     @relation(fields: [userId], references: [id])
+  categoryId   String   @map("category_id")
+  category     Category @relation(fields: [categoryId], references: [id])
+  scorePct     Decimal  @db.Decimal(5, 2) @map("score_pct")
+  passed       Boolean
+  answersJson  Json     @map("answers_json")
+  durationSec  Int?     @map("duration_sec")
+  isRetry      Boolean  @default(false) @map("is_retry")
+  retryFeePaid Boolean  @default(false) @map("retry_fee_paid")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([userId, categoryId])
+  @@map("test_attempts")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║              STORIES & EPISODES              ║
+// ╚══════════════════════════════════════════════╝
+
+model Story {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  coverUrl    String?  @map("cover_url")
+  authorId    String?  @map("author_id")
+  isPublished Boolean  @default(false) @map("is_published")
+  isFree      Boolean  @default(false) @map("is_free")
+  price       Decimal  @default(0) @db.Decimal(18, 2)
+  tags        String[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  episodes  Episode[]
+  purchases StoryPurchase[]
+
+  @@map("stories")
+}
+
+// game_content_json shape:
+// {
+//   phase1: { type: "memory_grid", cards: [...], timeLimit: 30 },
+//   phase2: { type: "sequence",    sequence: [...], timeLimit: 25 },
+//   phase3: { type: "match_pairs", pairs: [...],    timeLimit: 40 },
+//   phase4: { type: "fill_blank",  prompts: [...],  timeLimit: 35 },
+//   phase5: { type: "speed_recall",items: [...],    timeLimit: 20 }
+// }
+model Episode {
+  id              String   @id @default(cuid())
+  storyId         String   @map("story_id")
+  story           Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  title           String
+  episodeNumber   Int      @map("episode_number")
+  description     String?  @db.Text
+  contentUrl      String?  @map("content_url")
+  gameContentJson Json     @map("game_content_json")
+  isFree          Boolean  @default(false) @map("is_free")
+  price           Decimal  @default(0) @db.Decimal(18, 2)
+  isPublished     Boolean  @default(false) @map("is_published")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  purchases    StoryPurchase[]
+  quizSessions QuizSession[]
+
+  @@unique([storyId, episodeNumber])
+  @@index([storyId])
+  @@map("episodes")
+}
+
+model StoryPurchase {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id])
+  storyId     String?  @map("story_id")
+  story       Story?   @relation(fields: [storyId], references: [id])
+  episodeId   String?  @map("episode_id")
+  episode     Episode? @relation(fields: [episodeId], references: [id])
+  amountPaid  Decimal  @db.Decimal(18, 2) @map("amount_paid")
+  purchasedAt DateTime @default(now()) @map("purchased_at")
+
+  @@unique([userId, storyId])
+  @@unique([userId, episodeId])
+  @@index([userId])
+  @@map("story_purchases")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║        DISTRIBUTOR COLLECTIONS               ║
+// ╚══════════════════════════════════════════════╝
+
+model DistributorCollection {
+  id                  String    @id @default(cuid())
+  userId              String    @map("user_id")
+  user                User      @relation(fields: [userId], references: [id])
+  name                String
+  publicLinkCode      String    @unique @map("public_link_code")
+  isInUse             Boolean   @default(false) @map("is_in_use")
+  scheduledActivateAt DateTime? @map("scheduled_activate_at")
+  description         String?   @db.Text
+  maxParticipants     Int?      @map("max_participants")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  quizSessions QuizSession[]
+
+  @@index([userId])
+  @@index([publicLinkCode])
+  @@map("distributor_collections")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║           QUIZ SESSIONS & ENTRIES            ║
+// ╚══════════════════════════════════════════════╝
+
+model QuizSession {
+  id                      String                 @id @default(cuid())
+  categoryId              String?                @map("category_id")
+  category                Category?              @relation(fields: [categoryId], references: [id])
+  episodeId               String?                @map("episode_id")
+  episode                 Episode?               @relation(fields: [episodeId], references: [id])
+  distributorCollectionId String?                @map("distributor_collection_id")
+  distributorCollection   DistributorCollection? @relation(fields: [distributorCollectionId], references: [id])
+  title                   String?
+  status                  String                 @default("PENDING")
+  startedAt               DateTime?              @map("started_at")
+  endedAt                 DateTime?              @map("ended_at")
+  createdAt               DateTime               @default(now()) @map("created_at")
+
+  entries QuizEntry[]
+  bets    Bet[]
+
+  @@index([distributorCollectionId])
+  @@map("quiz_sessions")
+}
+
+// phase1–5 map to the 5 memory-game phases in Episode.gameContentJson
+model QuizEntry {
+  id            String      @id @default(cuid())
+  quizSessionId String      @map("quiz_session_id")
+  quizSession   QuizSession @relation(fields: [quizSessionId], references: [id])
+  userId        String      @map("user_id")
+  user          User        @relation(fields: [userId], references: [id])
+  phase1Score   Int         @default(0) @map("phase1_score")
+  phase2Score   Int         @default(0) @map("phase2_score")
+  phase3Score   Int         @default(0) @map("phase3_score")
+  phase4Score   Int         @default(0) @map("phase4_score")
+  phase5Score   Int         @default(0) @map("phase5_score")
+  totalScore    Int         @default(0) @map("total_score")
+  rank          Int?
+  completedAt   DateTime?   @map("completed_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@unique([quizSessionId, userId])
+  @@index([quizSessionId])
+  @@index([userId])
+  @@map("quiz_entries")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║                    BETS                      ║
+// ╚══════════════════════════════════════════════╝
+
+// predictedIds: string[] — IDs of QuizEntry users predicted to finish TOP-N
+model Bet {
+  id            String      @id @default(cuid())
+  userId        String      @map("user_id")
+  user          User        @relation(fields: [userId], references: [id])
+  quizSessionId String      @map("quiz_session_id")
+  quizSession   QuizSession @relation(fields: [quizSessionId], references: [id])
+  type          BetType
+  stake         Decimal     @db.Decimal(18, 2)
+  predictedIds  Json        @map("predicted_ids")
+  payout        Decimal?    @db.Decimal(18, 2)
+  status        BetStatus   @default(OPEN)
+  settledAt     DateTime?   @map("settled_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([quizSessionId])
+  @@map("bets")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║              WALLET & TRANSACTIONS           ║
+// ╚══════════════════════════════════════════════╝
+
+model Wallet {
+  id             String   @id @default(cuid())
+  userId         String   @unique @map("user_id")
+  user           User     @relation(fields: [userId], references: [id])
+  balance        Decimal  @default(0) @db.Decimal(18, 2)
+  totalDeposited Decimal  @default(0) @db.Decimal(18, 2) @map("total_deposited")
+  totalWithdrawn Decimal  @default(0) @db.Decimal(18, 2) @map("total_withdrawn")
+  totalEarned    Decimal  @default(0) @db.Decimal(18, 2) @map("total_earned")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  transactions Transaction[]
+
+  @@map("wallets")
+}
+
+model Transaction {
+  id            String            @id @default(cuid())
+  walletId      String            @map("wallet_id")
+  wallet        Wallet            @relation(fields: [walletId], references: [id])
+  userId        String            @map("user_id")
+  user          User              @relation(fields: [userId], references: [id])
+  type          TransactionType
+  amount        Decimal           @db.Decimal(18, 2)
+  balanceBefore Decimal           @db.Decimal(18, 2) @map("balance_before")
+  balanceAfter  Decimal           @db.Decimal(18, 2) @map("balance_after")
+  description   String?
+  reference     String?           @unique
+  status        TransactionStatus @default(PENDING)
+  metadata      Json?
+  createdAt     DateTime          @default(now()) @map("created_at")
+
+  @@index([walletId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║                 REFERRALS                    ║
+// ╚══════════════════════════════════════════════╝
+
+model Referral {
+  id               String       @id @default(cuid())
+  referrerId       String       @map("referrer_id")
+  referrer         User         @relation("ReferralReferrer", fields: [referrerId], references: [id])
+  referredId       String       @map("referred_id")
+  referred         User         @relation("ReferralReferred", fields: [referredId], references: [id])
+  type             ReferralType
+  recruitsCount    Int          @default(0) @map("recruits_count")
+  earningsUnlocked Boolean      @default(false) @map("earnings_unlocked")
+  unlockThreshold  Int          @default(0) @map("unlock_threshold")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  earnings ReferralEarning[]
+
+  @@unique([referrerId, referredId])
+  @@index([referrerId])
+  @@index([referredId])
+  @@map("referrals")
+}
+
+model ReferralEarning {
+  id          String   @id @default(cuid())
+  referralId  String   @map("referral_id")
+  referral    Referral @relation(fields: [referralId], references: [id])
+  amount      Decimal  @db.Decimal(18, 2)
+  source      String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([referralId])
+  @@map("referral_earnings")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║                INVESTMENTS                   ║
+// ╚══════════════════════════════════════════════╝
+
+model InvestmentRequest {
+  id          String                  @id @default(cuid())
+  userId      String                  @map("user_id")
+  user        User                    @relation(fields: [userId], references: [id])
+  amount      Decimal                 @db.Decimal(18, 2)
+  description String?                 @db.Text
+  status      InvestmentRequestStatus @default(PENDING)
+  reviewNote  String?                 @db.Text @map("review_note")
+  reviewedAt  DateTime?               @map("reviewed_at")
+  reviewedBy  String?                 @map("reviewed_by")
+  createdAt   DateTime                @default(now()) @map("created_at")
+  updatedAt   DateTime                @updatedAt @map("updated_at")
+
+  investment Investment?
+
+  @@index([userId])
+  @@map("investment_requests")
+}
+
+model Investment {
+  id             String             @id @default(cuid())
+  userId         String             @map("user_id")
+  user           User               @relation(fields: [userId], references: [id])
+  requestId      String?            @unique @map("request_id")
+  request        InvestmentRequest? @relation(fields: [requestId], references: [id])
+  amount         Decimal            @db.Decimal(18, 2)
+  returnRate     Decimal            @db.Decimal(7, 4) @map("return_rate")
+  expectedReturn Decimal            @db.Decimal(18, 2) @map("expected_return")
+  maturityDate   DateTime           @map("maturity_date")
+  status         InvestmentStatus   @default(ACTIVE)
+  actualReturn   Decimal?           @db.Decimal(18, 2) @map("actual_return")
+  maturedAt      DateTime?          @map("matured_at")
+  createdAt      DateTime           @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("investments")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║                 TOOL POOLS                   ║
+// ╚══════════════════════════════════════════════╝
+
+model ToolPool {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  capacity    Int      @default(10)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  members ToolPoolMember[]
+
+  @@map("tool_pools")
+}
+
+model ToolPoolMember {
+  id         String             @id @default(cuid())
+  toolPoolId String             @map("tool_pool_id")
+  toolPool   ToolPool           @relation(fields: [toolPoolId], references: [id])
+  userId     String             @map("user_id")
+  user       User               @relation(fields: [userId], references: [id])
+  role       ToolPoolMemberRole @default(MEMBER)
+  joinedAt   DateTime           @default(now()) @map("joined_at")
+
+  @@unique([toolPoolId, userId])
+  @@index([toolPoolId])
+  @@index([userId])
+  @@map("tool_pool_members")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║        AUTO-APPROVAL & PLATFORM CONFIG       ║
+// ╚══════════════════════════════════════════════╝
+
+// conditionsJson shape:
+// { "minBalance": 100, "maxAmount": 500, "allowedRoles": ["MEMBER"] }
+model AutoApprovalRule {
+  id                String   @id @default(cuid())
+  name              String
+  ruleType          String   @map("rule_type")
+  conditionsJson    Json     @map("conditions_json")
+  isActive          Boolean  @default(true) @map("is_active")
+  dailyLimitPerUser Int?     @map("daily_limit_per_user")
+  sampleReviewRate  Decimal  @default(0) @db.Decimal(5, 4) @map("sample_review_rate")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("auto_approval_rules")
+}
+
+model PlatformSettings {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String   @db.Text
+  description String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_settings")
 }
