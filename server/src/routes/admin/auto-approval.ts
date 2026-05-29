@@ -1,52 +1,21 @@
 import { Router } from "express";
-import { z } from "zod";
 import { prisma } from "../../utils/prisma";
 import { authenticate } from "../../middleware/authenticate";
 import { requireAdmin } from "../../middleware/requireAdmin";
 import { bustRuleCache, type Condition } from "../../services/auto-approval.service";
+import { validateRequest } from "../../middleware/validateRequest";
+import { AdminAutoApprovalSchemas } from "../../validators";
 
 const router = Router();
 
 // All routes require authentication + admin role
 router.use(authenticate, requireAdmin);
 
-// ── Validation ────────────────────────────────────────────────────────────────
-
-const OPERATORS = [
-  "GREATER_THAN",
-  "LESS_THAN",
-  "EQUALS",
-  "NOT_IN",
-  "IN",
-  "BETWEEN",
-] as const;
-
-const ConditionSchema = z.object({
-  field: z.string().min(1),
-  operator: z.enum(OPERATORS),
-  value: z.unknown(),
-});
-
-const RuleBodySchema = z.object({
-  name: z.string().min(2).max(120),
-  ruleType: z.string().min(1).max(50).toUpperCase(),
-  conditions: z.array(ConditionSchema),
-  isActive: z.boolean().optional(),
-  dailyLimitPerUser: z.number().int().positive().nullable().optional(),
-  sampleReviewRate: z.number().min(0).max(1).optional(),
-});
-
 // ── POST /api/admin/auto-approval/rules — create ──────────────────────────────
 
-router.post("/rules", async (req, res) => {
-  const parsed = RuleBodySchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Invalid input", fields: parsed.error.flatten().fieldErrors });
-    return;
-  }
-
+router.post("/rules", validateRequest({ body: AdminAutoApprovalSchemas.rule }), async (req, res) => {
   const { name, ruleType, conditions, isActive, dailyLimitPerUser, sampleReviewRate } =
-    parsed.data;
+    req.body;
 
   const rule = await prisma.autoApprovalRule.create({
     data: {
@@ -96,13 +65,7 @@ router.get("/rules/:id", async (req, res) => {
 
 // ── PUT /api/admin/auto-approval/rules/:id — update ──────────────────────────
 
-router.put("/rules/:id", async (req, res) => {
-  const parsed = RuleBodySchema.partial().safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Invalid input", fields: parsed.error.flatten().fieldErrors });
-    return;
-  }
-
+router.put("/rules/:id", validateRequest({ body: AdminAutoApprovalSchemas.rule.partial() }), async (req, res) => {
   const existing = await prisma.autoApprovalRule.findUnique({
     where: { id: req.params.id },
   });
@@ -112,7 +75,7 @@ router.put("/rules/:id", async (req, res) => {
   }
 
   const { name, ruleType, conditions, isActive, dailyLimitPerUser, sampleReviewRate } =
-    parsed.data;
+    req.body;
 
   const updated = await prisma.autoApprovalRule.update({
     where: { id: req.params.id },
@@ -154,7 +117,7 @@ router.delete("/rules/:id", async (req, res) => {
 
 // ── GET /api/admin/auto-approval/logs — paginated decision log ────────────────
 
-router.get("/logs", async (req, res) => {
+router.get("/logs", validateRequest({ query: AdminAutoApprovalSchemas.logQuery }), async (req, res) => {
   const {
     page = "1",
     limit = "25",

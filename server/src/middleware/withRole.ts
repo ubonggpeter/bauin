@@ -1,6 +1,7 @@
 import type { Response, NextFunction } from "express";
 import type { AuthRequest } from "./authenticate";
 import { prisma } from "../utils/prisma";
+import { Errors } from "../errors/AppError";
 
 export type AppRole =
   | "SUPER_ADMIN"
@@ -12,20 +13,19 @@ export type AppRole =
 
 /**
  * Express middleware factory that gates a route to users with one of the
- * specified roles. Must be used after `authenticate`.
+ * specified roles. Must be placed after `authenticate`.
  *
  * @example
- * router.get('/admin-only', authenticate, withRole('ADMIN', 'SUPER_ADMIN'), handler);
- * router.post('/sellers', authenticate, withRole('SELLER', 'DISTRIBUTOR'), handler);
+ * router.delete('/:id', authenticate, withRole('ADMIN', 'SUPER_ADMIN'), handler);
  */
 export function withRole(...allowedRoles: AppRole[]) {
   return async (
     req: AuthRequest,
-    res: Response,
+    _res: Response,
     next: NextFunction
   ): Promise<void> => {
     if (!req.userId) {
-      res.status(401).json({ error: "Unauthorized" });
+      next(Errors.authRequired());
       return;
     }
 
@@ -35,14 +35,16 @@ export function withRole(...allowedRoles: AppRole[]) {
     });
 
     if (!user || !user.isActive) {
-      res.status(401).json({ error: "Account not found or inactive" });
+      next(Errors.authRequired("Account not found or inactive"));
       return;
     }
 
     if (!(allowedRoles as string[]).includes(user.role)) {
-      res
-        .status(403)
-        .json({ error: `Requires one of: ${allowedRoles.join(", ")}` });
+      next(
+        Errors.forbidden(
+          `Requires one of: ${allowedRoles.join(", ")}`
+        )
+      );
       return;
     }
 

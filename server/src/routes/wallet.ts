@@ -1,77 +1,83 @@
 import { Router } from "express";
-import { z } from "zod";
 import { authenticate, type AuthRequest } from "../middleware/authenticate";
+import { validateRequest } from "../middleware/validateRequest";
 import { prisma } from "../utils/prisma";
+import { Errors } from "../errors/AppError";
+import { WalletSchemas } from "../validators";
 
 const router = Router();
 
-router.get("/", authenticate, async (req: AuthRequest, res) => {
-  const [wallet, transactions] = await Promise.all([
-    prisma.wallet.findUnique({
-      where: { userId: req.userId },
-      select: { balance: true, totalDeposited: true, totalWithdrawn: true, totalEarned: true },
-    }),
-    prisma.transaction.findMany({
-      where: { userId: req.userId },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-      select: {
-        id: true,
-        type: true,
-        amount: true,
-        description: true,
-        status: true,
-        createdAt: true,
-      },
-    }),
-  ]);
+// ── GET /api/wallet ───────────────────────────────────────────────────────────
 
-  res.json({ wallet, transactions });
-});
-
-const WithdrawSchema = z.object({
-  amount: z.number().positive(),
-  address: z.string().min(1),
-});
-
-router.post("/withdraw", authenticate, async (req: AuthRequest, res) => {
-  const parsed = WithdrawSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Invalid input" });
-    return;
+router.get("/", authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const [wallet, transactions] = await Promise.all([
+      prisma.wallet.findUnique({
+        where: { userId: req.userId },
+        select: {
+          balance: true, totalDeposited: true,
+          totalWithdrawn: true, totalEarned: true,
+        },
+      }),
+      prisma.transaction.findMany({
+        where: { userId: req.userId },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select: {
+          id: true, type: true, amount: true,
+          description: true, status: true, createdAt: true,
+        },
+      }),
+    ]);
+    res.json({ wallet, transactions });
+  } catch (err) {
+    next(err);
   }
-
-  const { amount } = parsed.data;
-  const wallet = await prisma.wallet.findUnique({ where: { userId: req.userId } });
-
-  if (!wallet || Number(wallet.balance) < amount) {
-    res.status(400).json({ error: "Insufficient balance" });
-    return;
-  }
-
-  await prisma.$transaction([
-    prisma.wallet.update({
-      where: { userId: req.userId },
-      data: {
-        balance: { decrement: amount },
-        totalWithdrawn: { increment: amount },
-      },
-    }),
-    prisma.transaction.create({
-      data: {
-        userId: req.userId!,
-        walletId: wallet.id,
-        type: "WITHDRAWAL",
-        amount,
-        balanceBefore: wallet.balance,
-        balanceAfter: Number(wallet.balance) - amount,
-        description: "Withdrawal request",
-        status: "PENDING",
-      },
-    }),
-  ]);
-
-  res.json({ message: "Withdrawal submitted" });
 });
+
+// ── POST /api/wallet/withdraw ─────────────────────────────────────────────────
+
+router.post(
+  "/withdraw",
+  authenticate,
+  validateRequest({ body: WalletSchemas.withdraw }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      const { amount } = req.body;
+
+      const wallet = await prisma.wallet.findUnique({
+        where: { userId: req.userId },
+      });
+
+      if (!wallet || Number(wallet.balance) < amount) {
+        next(Errors.insufficientBalance(wallet ? Number(wallet.balance) : 0, amount));
+        return;
+      }
+
+      await prisma.$transaction([
+        prisma.wallet.update({
+          where: { userId: req.userId },
+          data: { balance: { decrement: amount }, totalWithdrawn: { increment: amount } },
+        }),
+        prisma.transaction.create({
+          data: {
+            userId: req.userId!,
+            walletId: wallet.id,
+            type: "WITHDRAWAL",
+            amount,
+            balanceBefore: wallet.balance,
+            balanceAfter: Number(wallet.balance) - amount,
+            description: "Withdrawal request",
+            status: "PENDING",
+          },
+        }),
+      ]);
+
+      res.json({ message: "Withdrawal submitted" });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 export default router;

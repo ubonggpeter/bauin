@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { z } from "zod";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { randomBytes } from "crypto";
@@ -14,6 +13,8 @@ import { createAuditLog } from "../../services/audit.service";
 import { authenticate } from "../../middleware/authenticate";
 import { withRole } from "../../middleware/withRole";
 import type { AuthRequest } from "../../middleware/authenticate";
+import { validateRequest } from "../../middleware/validateRequest";
+import { AdminAuthSchemas } from "../../validators";
 
 const router = Router();
 
@@ -91,17 +92,9 @@ function issueAdminToken(userId: string, role: string): string {
 // Step 1: verify email + password; return challengeId (or direct token if no 2FA)
 // ─────────────────────────────────────────────────────────────────────────────
 
-router.post("/challenge", async (req, res) => {
-  const parsed = z
-    .object({ email: z.string().email(), password: z.string().min(1) })
-    .safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Invalid input" });
-    return;
-  }
-
+router.post("/challenge", validateRequest({ body: AdminAuthSchemas.challenge }), async (req, res) => {
   const user = await prisma.user.findUnique({
-    where: { email: parsed.data.email.toLowerCase() },
+    where: { email: (req.body.email as string).toLowerCase() },
     select: {
       id: true,
       name: true,
@@ -114,7 +107,7 @@ router.post("/challenge", async (req, res) => {
 
   // Constant-time comparison to prevent email enumeration
   const dummy = "$2b$12$notarealhashjustpaddingtomatch...";
-  const ok = await bcrypt.compare(parsed.data.password, user?.passwordHash ?? dummy);
+  const ok = await bcrypt.compare(req.body.password, user?.passwordHash ?? dummy);
 
   if (!user || !ok || !user.isActive) {
     res.status(401).json({ error: "Invalid credentials" });
@@ -149,19 +142,8 @@ router.post("/challenge", async (req, res) => {
 // Step 2: verify TOTP, issue admin JWT
 // ─────────────────────────────────────────────────────────────────────────────
 
-router.post("/session", async (req, res) => {
-  const parsed = z
-    .object({
-      challengeId: z.string().min(1),
-      totpCode: z.string().regex(/^\d{6}$/, "Must be a 6-digit code"),
-    })
-    .safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Invalid input", fields: parsed.error.flatten().fieldErrors });
-    return;
-  }
-
-  const userId = await popChallenge(parsed.data.challengeId);
+router.post("/session", validateRequest({ body: AdminAuthSchemas.session }), async (req, res) => {
+  const userId = await popChallenge(req.body.challengeId);
   if (!userId) {
     res.status(401).json({ error: "Challenge expired or invalid" });
     return;
@@ -177,7 +159,7 @@ router.post("/session", async (req, res) => {
     return;
   }
 
-  if (!verifyTotpToken(user.twoFactorSecret, parsed.data.totpCode)) {
+  if (!verifyTotpToken(user.twoFactorSecret, req.body.totpCode)) {
     res.status(401).json({ error: "Invalid authentication code" });
     return;
   }
@@ -227,19 +209,15 @@ router.post(
   "/2fa/enable",
   authenticate,
   withRole("ADMIN", "SUPER_ADMIN"),
+  validateRequest({ body: AdminAuthSchemas.totpCode }),
   async (req: AuthRequest, res) => {
-    const parsed = z
-      .object({ totpCode: z.string().regex(/^\d{6}$/) })
-      .safeParse(req.body);
-    if (!parsed.success) { res.status(400).json({ error: "Invalid code" }); return; }
-
     const secret = await popTotpSetupSecret(req.userId!);
     if (!secret) {
       res.status(400).json({ error: "Setup session expired — restart setup" });
       return;
     }
 
-    if (!verifyTotpToken(secret, parsed.data.totpCode)) {
+    if (!verifyTotpToken(secret, req.body.totpCode)) {
       res.status(400).json({ error: "Code incorrect — check your authenticator app" });
       return;
     }
@@ -270,12 +248,8 @@ router.post(
   "/2fa/disable",
   authenticate,
   withRole("ADMIN", "SUPER_ADMIN"),
+  validateRequest({ body: AdminAuthSchemas.totpCode }),
   async (req: AuthRequest, res) => {
-    const parsed = z
-      .object({ totpCode: z.string().regex(/^\d{6}$/) })
-      .safeParse(req.body);
-    if (!parsed.success) { res.status(400).json({ error: "Invalid code" }); return; }
-
     const user = await prisma.user.findUnique({
       where: { id: req.userId! },
       select: { twoFactorSecret: true, twoFactorEnabled: true },
@@ -286,7 +260,7 @@ router.post(
       return;
     }
 
-    if (!verifyTotpToken(user.twoFactorSecret, parsed.data.totpCode)) {
+    if (!verifyTotpToken(user.twoFactorSecret, req.body.totpCode)) {
       res.status(401).json({ error: "Invalid authentication code" });
       return;
     }

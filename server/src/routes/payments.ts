@@ -13,6 +13,8 @@ import {
 import { creditWallet, recordExternalPayment } from "../services/wallet.service";
 import { incrementPrizePool } from "../utils/redis";
 import { enqueueEmail } from "../services/email";
+import { validateRequest } from "../middleware/validateRequest";
+import { PaymentSchemas } from "../validators";
 
 const router = Router();
 
@@ -280,24 +282,9 @@ async function handleToolPool(
 
 // ── POST /api/payments/initialize ─────────────────────────────────────────────
 
-const InitSchema = z.object({
-  /** Amount in kobo */
-  amount: z.number().int().positive(),
-  email: z.string().email(),
-  payment_type: z.enum(["REGISTRATION", "QUIZ_ENTRY", "BET", "RETRY_FEE", "TOOL_POOL"]),
-  metadata: z.record(z.unknown()).optional(),
-  callback_url: z.string().url().optional(),
-  currency: z.string().optional(),
-});
-
-router.post("/initialize", authenticate, async (req: AuthRequest, res) => {
-  const parsed = InitSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Invalid input", fields: parsed.error.flatten().fieldErrors });
-    return;
-  }
-
-  const { amount, email, payment_type, metadata, callback_url, currency } = parsed.data;
+router.post("/initialize", authenticate, validateRequest({ body: PaymentSchemas.initialize }), async (req: AuthRequest, res, next) => {
+  try {
+  const { amount, email, payment_type, metadata, callback_url, currency } = req.body;
   const reference = genReference();
 
   try {
@@ -316,9 +303,9 @@ router.post("/initialize", authenticate, async (req: AuthRequest, res) => {
 
     res.json({ ...result, reference });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Payment init failed";
-    res.status(502).json({ error: msg });
+    next(err instanceof Error && err.message ? err : new Error("Payment init failed"));
   }
+  } catch (err) { next(err); }
 });
 
 // ── POST /api/payments/verify/:reference ──────────────────────────────────────

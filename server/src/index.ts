@@ -12,6 +12,8 @@ import paymentsRouter from "./routes/payments";
 import adminAutoApprovalRouter from "./routes/admin/auto-approval";
 import adminAuthRouter from "./routes/admin/auth";
 import uploadRouter from "./routes/upload";
+import { prisma } from "./utils/prisma";
+import { getRedis } from "./utils/redis";
 import { errorHandler } from "./middleware/errorHandler";
 import { rateLimiter } from "./middleware/rateLimiter";
 import { seedAutoApprovalRules } from "./scripts/seed-auto-approval";
@@ -48,7 +50,42 @@ app.use("/api/admin/auto-approval", adminAutoApprovalRouter);
 app.use("/api/admin/auth", adminAuthRouter);
 app.use("/api/upload", uploadRouter);
 
-app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
+app.get("/api/health", async (_req, res) => {
+  const start = Date.now();
+
+  const [dbResult, redisResult] = await Promise.allSettled([
+    prisma.$queryRaw`SELECT 1`.then(() => ({ ok: true, latencyMs: Date.now() - start })),
+    (async () => {
+      const t = Date.now();
+      const redis = getRedis();
+      if (!redis) return { ok: false, latencyMs: null };
+      await redis.ping();
+      return { ok: true, latencyMs: Date.now() - t };
+    })(),
+  ]);
+
+  const db =
+    dbResult.status === "fulfilled"
+      ? dbResult.value
+      : { ok: false, latencyMs: null };
+  const redisInfo =
+    redisResult.status === "fulfilled"
+      ? redisResult.value
+      : { ok: false, latencyMs: null };
+
+  const allOk = db.ok && redisInfo.ok;
+
+  res.status(allOk ? 200 : 503).json({
+    status: allOk ? "ok" : "degraded",
+    timestamp: new Date().toISOString(),
+    uptime: Math.floor(process.uptime()),
+    services: {
+      server: { ok: true },
+      database: db,
+      redis: redisInfo,
+    },
+  });
+});
 
 // Error handler
 app.use(errorHandler);
