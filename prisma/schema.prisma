@@ -18,6 +18,17 @@ enum UserRole {
   MEMBER
 }
 
+enum UserRank {
+  MEMBER
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
+  BILLIONAIRE
+  BILLIONAIRE_ELITE
+}
+
 enum KycStatus {
   PENDING
   SUBMITTED
@@ -113,14 +124,18 @@ model User {
   referredBy    User?     @relation("UserReferrals", fields: [referredById], references: [id])
   referrals     User[]    @relation("UserReferrals")
   kycStatus     KycStatus @default(PENDING) @map("kyc_status")
+  rank          UserRank  @default(MEMBER)
   walletBalance Decimal   @default(0) @db.Decimal(18, 2) @map("wallet_balance")
   phoneNumber   String?   @map("phone_number")
   country       String?
   avatarUrl     String?   @map("avatar_url")
-  isActive      Boolean   @default(true) @map("is_active")
-  lastLoginAt   DateTime? @map("last_login_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  emailVerifiedAt  DateTime? @map("email_verified_at")
+  resetToken       String?   @map("reset_token")
+  resetTokenExpiry DateTime? @map("reset_token_expiry")
+  isActive         Boolean   @default(true) @map("is_active")
+  lastLoginAt      DateTime? @map("last_login_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
   wallet                 Wallet?
   userCategories         UserCategory[]

@@ -6,21 +6,27 @@ import { prisma } from "../utils/prisma";
 const router = Router();
 
 router.get("/", authenticate, async (req: AuthRequest, res) => {
-  const wallet = await prisma.wallet.findUnique({
-    where: { userId: req.userId },
-    include: {
-      user: {
-        select: {
-          transactions: {
-            orderBy: { createdAt: "desc" },
-            take: 20,
-          },
-        },
+  const [wallet, transactions] = await Promise.all([
+    prisma.wallet.findUnique({
+      where: { userId: req.userId },
+      select: { balance: true, totalDeposited: true, totalWithdrawn: true, totalEarned: true },
+    }),
+    prisma.transaction.findMany({
+      where: { userId: req.userId },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        description: true,
+        status: true,
+        createdAt: true,
       },
-    },
-  });
+    }),
+  ]);
 
-  res.json({ wallet });
+  res.json({ wallet, transactions });
 });
 
 const WithdrawSchema = z.object({
@@ -46,13 +52,19 @@ router.post("/withdraw", authenticate, async (req: AuthRequest, res) => {
   await prisma.$transaction([
     prisma.wallet.update({
       where: { userId: req.userId },
-      data: { balance: { decrement: amount } },
+      data: {
+        balance: { decrement: amount },
+        totalWithdrawn: { increment: amount },
+      },
     }),
-    prisma.walletTransaction.create({
+    prisma.transaction.create({
       data: {
         userId: req.userId!,
+        walletId: wallet.id,
         type: "WITHDRAWAL",
         amount,
+        balanceBefore: wallet.balance,
+        balanceAfter: Number(wallet.balance) - amount,
         description: "Withdrawal request",
         status: "PENDING",
       },

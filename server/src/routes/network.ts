@@ -11,6 +11,7 @@ router.get("/downline", authenticate, async (req: AuthRequest, res) => {
       id: true,
       name: true,
       email: true,
+      role: true,
       rank: true,
       isActive: true,
       createdAt: true,
