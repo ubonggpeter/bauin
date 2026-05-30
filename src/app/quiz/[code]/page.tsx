@@ -1,21 +1,34 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { usePaystackPayment } from "react-paystack";
+
+// ── Types ──────────────────────────────────────────────────────────
+type Player = { id: string; userId: string; name: string };
 
 type SessionInfo = {
   collection: {
-    name:                string;
-    description:         string | null;
-    isInUse:             boolean;
-    scheduledActivateAt: string | null;
-    hostName:            string;
+    name: string; description: string | null; publicLinkCode: string;
+    isInUse: boolean; scheduledActivateAt: string | null; hostName: string;
   };
-  session: { id: string; status: string; title: string };
+  session:    { id: string; status: string; title: string };
   playerCount: number;
   prizePool:   number;
+  players:     Player[];
 };
 
-// ── Countdown ────────────────────────────────────────────────────
+type BetTypeId = "TOP10" | "TOP5" | "TOP3" | "TOP1";
+type BetStep   = "type" | "players" | "stake";
+
+const BET_TYPES: { id: BetTypeId; label: string; bonus: string; multiplier: number; picks: number; color: string }[] = [
+  { id: "TOP10", label: "Top 10", bonus: "+100%", multiplier: 2,  picks: 10, color: "#1A6659" },
+  { id: "TOP5",  label: "Top 5",  bonus: "+200%", multiplier: 3,  picks: 5,  color: "#0E4A3D" },
+  { id: "TOP3",  label: "Top 3",  bonus: "+400%", multiplier: 5,  picks: 3,  color: "#B45309" },
+  { id: "TOP1",  label: "Top 1",  bonus: "+800%", multiplier: 9,  picks: 1,  color: "#7C3AED" },
+];
+
+// ── Helpers ───────────────────────────────────────────────────────
 function useCountdown(target: string | null) {
   const [secs, setSecs] = useState<number | null>(null);
   useEffect(() => {
@@ -28,49 +41,420 @@ function useCountdown(target: string | null) {
   return secs;
 }
 
-function fmt(secs: number) {
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  const s = secs % 60;
-  if (h > 0) return `${h}h ${m}m ${String(s).padStart(2, "0")}s`;
-  if (m > 0) return `${m}m ${String(s).padStart(2, "0")}s`;
+function fmtCountdown(s: number) {
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  if (h > 0) return `${h}h ${m}m ${String(sec).padStart(2,"0")}s`;
+  if (m > 0) return `${m}m ${String(sec).padStart(2,"0")}s`;
   return `${s}s`;
 }
 
-// ── Animated prize counter ────────────────────────────────────────
+// ── Animated prize counter ─────────────────────────────────────────
 function PrizeCounter({ value }: { value: number }) {
-  const [displayed, setDisplayed] = useState(value);
+  const [display, setDisplay] = useState(value);
   const prev = useRef(value);
-
   useEffect(() => {
     if (value === prev.current) return;
-    const diff  = value - prev.current;
-    const steps = 20;
+    const diff = value - prev.current, steps = 20;
     let i = 0;
     const id = setInterval(() => {
       i++;
-      setDisplayed(Math.round(prev.current + (diff * i) / steps));
+      setDisplay(Math.round(prev.current + (diff * i) / steps));
       if (i >= steps) { clearInterval(id); prev.current = value; }
     }, 30);
     return () => clearInterval(id);
   }, [value]);
-
-  return <>{displayed.toLocaleString()}</>;
+  return <>{display.toLocaleString()}</>;
 }
 
-export default function QuizLobbyPage() {
-  const { code }  = useParams<{ code: string }>();
-  const router    = useRouter();
-  const [info, setInfo]       = useState<SessionInfo | null>(null);
-  const [error, setError]     = useState("");
-  const [joining, setJoining] = useState(false);
-  const [pulse, setPulse]     = useState(false);
+// ══════════════════════════════════════════════════════════════════
+// BETTING SHEET
+// ══════════════════════════════════════════════════════════════════
+function BettingSheet({
+  players, sessionId, sessionCode, userEmail,
+  onClose, onSuccess,
+}: {
+  players: Player[]; sessionId: string; sessionCode: string;
+  userEmail: string; onClose: () => void; onSuccess: () => void;
+}) {
+  const [step,        setStep]        = useState<BetStep>("type");
+  const [betType,     setBetType]     = useState<BetTypeId | null>(null);
+  const [selected,    setSelected]    = useState<Set<string>>(new Set());
+  const [stake,       setStake]       = useState("");
+  const [paying,      setPaying]      = useState(false);
+  const [psRef,       setPsRef]       = useState("");
+  const [error,       setError]       = useState("");
 
-  const countdown = useCountdown(
-    info?.collection.scheduledActivateAt ?? null
+  const chosenType  = BET_TYPES.find((t) => t.id === betType);
+  const stakeNum    = Math.max(0, parseInt(stake) || 0);
+  const potentialWin = stakeNum * (chosenType?.multiplier ?? 1);
+
+  // Paystack config (amount set to stakeNum)
+  const psConfig = {
+    email:     userEmail,
+    amount:    stakeNum * 100, // kobo
+    publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ?? "",
+    currency:  "NGN",
+    label:     `Quiz Bet: ${betType}`,
+    reference: `BET-${sessionId}-${Date.now()}`,
+  };
+  const initPayment = usePaystackPayment(psConfig);
+
+  async function handlePay() {
+    if (!betType || selected.size !== chosenType!.picks) return;
+    if (stakeNum < 100) { setError("Minimum stake is ₦100"); return; }
+    setError("");
+    initPayment({
+      onSuccess: async (tx: { reference: string }) => {
+        setPsRef(tx.reference);
+        setPaying(true);
+        try {
+          const res = await fetch(`/api/quiz/${sessionCode}/bet`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              betType,
+              predictedIds:      Array.from(selected),
+              stake:             stakeNum,
+              paystackReference: tx.reference,
+            }),
+          });
+          if (!res.ok) {
+            const d = await res.json();
+            setError(d.error ?? "Bet failed");
+          } else {
+            onSuccess();
+          }
+        } catch {
+          setError("Network error placing bet");
+        } finally {
+          setPaying(false);
+        }
+      },
+      onClose: () => {},
+    });
+  }
+
+  void psRef; // used via psConfig
+
+  function togglePlayer(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); return next; }
+      if (next.size >= (chosenType?.picks ?? 0)) return prev; // cap
+      next.add(id);
+      return next;
+    });
+  }
+
+  const mockPlayers: Player[] = players.length >= 3 ? players : [
+    ...players,
+    { id: "mock1", userId: "m1", name: "Ade Williams" },
+    { id: "mock2", userId: "m2", name: "Funmi Okafor" },
+    { id: "mock3", userId: "m3", name: "Chidi Obi"    },
+    { id: "mock4", userId: "m4", name: "Ngozi Eze"    },
+    { id: "mock5", userId: "m5", name: "Tunde Adeyemi" },
+  ].slice(0, 8);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      style={{ background: "rgba(0,0,0,0.55)" }}
+    >
+      <div className="w-full bg-white rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden">
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-gray-200" />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            {step !== "type" && (
+              <button onClick={() => setStep(step === "stake" ? "players" : "type")}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-4 h-4">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+            )}
+            <div>
+              <h3 className="font-bold text-text-dark text-base leading-none">
+                {step === "type" ? "Place a Bet" : step === "players" ? `Pick ${chosenType?.picks} Players` : "Confirm Stake"}
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {step === "type" ? "Choose your bet type" : step === "players" ? `${selected.size}/${chosenType?.picks} selected` : `${chosenType?.label} · ${chosenType?.bonus}`}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose}
+            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-4 h-4">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Step indicator */}
+        <div className="flex gap-1.5 px-5 py-2.5">
+          {(["type","players","stake"] as BetStep[]).map((s, i) => (
+            <div key={s} className={`h-1 rounded-full flex-1 transition-all ${
+              s === step ? "bg-gold" : i < ["type","players","stake"].indexOf(step) ? "bg-green-400" : "bg-gray-100"
+            }`} />
+          ))}
+        </div>
+
+        {/* ── Step 1: Bet type cards ── */}
+        {step === "type" && (
+          <div className="flex-1 overflow-y-auto px-5 pb-6">
+            <p className="text-xs text-gray-400 mb-3 mt-1">Higher risk = higher reward. Pick predicted top finishers.</p>
+            <div className="grid grid-cols-2 gap-3">
+              {BET_TYPES.map((t) => (
+                <button key={t.id} onClick={() => { setBetType(t.id); setSelected(new Set()); setStep("players"); }}
+                  className="rounded-2xl p-4 text-left transition-all active:scale-95 hover:scale-[1.02]"
+                  style={{ background: t.color }}>
+                  <div className="flex items-start justify-between mb-3">
+                    <span className="text-white font-black text-lg leading-none">{t.label}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-white/20 text-white text-xs font-bold">{t.bonus}</span>
+                  </div>
+                  <p className="text-white/70 text-xs mb-3">Predict {t.picks} player{t.picks > 1 ? "s" : ""} to finish top {t.picks}</p>
+                  <div className="flex items-center gap-1">
+                    <span className="text-white/60 text-[10px]">Win</span>
+                    <span className="text-white font-black text-sm">{t.multiplier}× stake</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <p className="text-center text-xs text-gray-400 mt-4">Bets are final once payment is confirmed</p>
+          </div>
+        )}
+
+        {/* ── Step 2: Player selection ── */}
+        {step === "players" && chosenType && (
+          <div className="flex-1 overflow-y-auto">
+            <div className="px-5 py-2 bg-gold/5 border-b border-gold/15">
+              <p className="text-xs text-amber-700 font-medium">
+                Select exactly {chosenType.picks} player{chosenType.picks > 1 ? "s" : ""} you think will finish in the top {chosenType.picks}
+              </p>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {mockPlayers.map((p, i) => {
+                const checked = selected.has(p.id);
+                const full    = selected.size >= chosenType.picks && !checked;
+                return (
+                  <button key={p.id} onClick={() => togglePlayer(p.id)} disabled={full}
+                    className={`w-full flex items-center gap-3 px-5 py-3.5 transition-colors text-left ${
+                      full ? "opacity-40" : checked ? "bg-primary/5" : "hover:bg-gray-50"
+                    }`}>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                      checked ? "border-primary bg-primary" : "border-gray-300"
+                    }`}>
+                      {checked && <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} className="w-3 h-3"><polyline points="20 6 9 17 4 12"/></svg>}
+                    </div>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                      style={{ background: BET_TYPES[i % 4].color }}>
+                      {p.name.charAt(0)}
+                    </div>
+                    <span className={`flex-1 text-sm font-medium ${checked ? "text-primary" : "text-text-dark"}`}>{p.name}</span>
+                    {checked && <span className="text-xs text-primary font-semibold">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="px-5 py-4">
+              <button
+                onClick={() => setStep("stake")}
+                disabled={selected.size !== chosenType.picks}
+                className="w-full py-3.5 rounded-2xl font-bold text-text-dark disabled:opacity-40 transition-all"
+                style={{ background: selected.size === chosenType.picks ? "linear-gradient(135deg,#F0B429,#d4981e)" : "#e5e7eb" }}>
+                Continue →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 3: Stake + Pay ── */}
+        {step === "stake" && chosenType && (
+          <div className="flex-1 overflow-y-auto px-5 pb-6">
+            {/* Summary */}
+            <div className="rounded-2xl p-4 mt-3 mb-4" style={{ background: "rgba(26,102,89,0.06)" }}>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-gray-500">Bet type</span>
+                <span className="font-semibold text-text-dark">{chosenType.label} <span className="text-green-600">{chosenType.bonus}</span></span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Predicted players</span>
+                <span className="font-semibold text-text-dark">{selected.size} selected</span>
+              </div>
+            </div>
+
+            {/* Selected player chips */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {Array.from(selected).map((id) => {
+                const p = mockPlayers.find((x) => x.id === id);
+                return p ? (
+                  <span key={id} className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full">
+                    <span className="w-4 h-4 rounded-full bg-primary text-white flex items-center justify-center text-[9px]">{p.name.charAt(0)}</span>
+                    {p.name}
+                  </span>
+                ) : null;
+              })}
+            </div>
+
+            {/* Stake input */}
+            <label className="block text-sm font-semibold text-text-dark mb-2">Your Stake</label>
+            <div className="flex items-center border-2 rounded-2xl overflow-hidden mb-1 focus-within:border-gold transition-colors" style={{ borderColor: "#e5e7eb" }}>
+              <span className="px-4 text-lg font-black text-gold bg-gold/5 self-stretch flex items-center">₦</span>
+              <input
+                type="number"
+                min="100"
+                placeholder="500"
+                value={stake}
+                onChange={(e) => setStake(e.target.value)}
+                className="flex-1 px-3 py-4 text-lg font-bold text-text-dark outline-none bg-white"
+              />
+            </div>
+            <p className="text-xs text-gray-400 mb-4">Minimum ₦100</p>
+
+            {/* Potential win */}
+            {stakeNum >= 100 && (
+              <div className="rounded-2xl p-4 mb-4 border border-gold/30 bg-gold/5">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Potential win</span>
+                  <span className="text-xl font-black text-gold">₦{potentialWin.toLocaleString()}</span>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  ₦{stakeNum.toLocaleString()} × {chosenType.multiplier} = ₦{potentialWin.toLocaleString()} if you win
+                </p>
+              </div>
+            )}
+
+            {error && (
+              <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm mb-4">{error}</div>
+            )}
+
+            {/* Paystack CTA */}
+            <button
+              onClick={handlePay}
+              disabled={stakeNum < 100 || paying}
+              className="w-full py-4 rounded-2xl font-black text-text-dark text-base flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+              style={{ background: stakeNum >= 100 ? "linear-gradient(135deg,#F0B429,#d4981e)" : "#e5e7eb" }}>
+              {paying ? (
+                <>
+                  <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeDashoffset="10"/>
+                  </svg>
+                  Confirming…
+                </>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                    <path d="M21 18v1a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v1"/>
+                    <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                  </svg>
+                  Pay ₦{stakeNum > 0 ? stakeNum.toLocaleString() : "—"} via Paystack
+                </>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
+}
 
-  // ── Poll session info every 2 s ─────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// VIEWER REFERRAL CARD
+// ══════════════════════════════════════════════════════════════════
+function ViewerReferralCard({ code, playerCount }: { code: string; playerCount: number }) {
+  const [copied, setCopied] = useState(false);
+  const url = typeof window !== "undefined" ? `${window.location.origin}/quiz/${code}` : `https://bauin.app/quiz/${code}`;
+  const goal = 50;
+  const pct  = Math.min(100, Math.round((playerCount / goal) * 100));
+
+  async function copy() {
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  }
+
+  function share() {
+    const text = `Join me on this BAUIN quiz! ${url}`;
+    if (navigator.share) navigator.share({ text, url });
+    else copy();
+  }
+
+  return (
+    <div className="w-full max-w-md mt-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4 text-gold">
+          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+        <span className="text-white font-semibold text-sm">Invite Friends · Earn Rewards</span>
+      </div>
+
+      {/* Link row */}
+      <div className="flex items-center gap-2 mb-3">
+        <div className="flex-1 bg-white/10 rounded-xl px-3 py-2 border border-white/10">
+          <p className="text-white/60 text-[11px] font-mono truncate">{url}</p>
+        </div>
+        <button onClick={copy}
+          className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+            copied ? "bg-green-500 text-white" : "bg-white/20 text-white hover:bg-white/30"
+          }`}>
+          {copied ? "✓" : "Copy"}
+        </button>
+      </div>
+
+      {/* Progress */}
+      <div className="mb-3">
+        <div className="flex justify-between text-xs mb-1.5">
+          <span className="text-white/60">{playerCount} players joined</span>
+          <span className="text-white/40">Goal: {goal}</span>
+        </div>
+        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{ width: `${pct}%`, background: "linear-gradient(90deg,#1A6659,#F0B429)" }}
+          />
+        </div>
+        <p className="text-white/40 text-[10px] mt-1.5">
+          {goal - playerCount} more players until prize pool doubles 🔥
+        </p>
+      </div>
+
+      <button onClick={share}
+        className="w-full py-2.5 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition-all hover:bg-white/10"
+        style={{ border: "1px solid rgba(255,255,255,0.2)" }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+          <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/>
+          <polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+        </svg>
+        Share Quiz Link
+      </button>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ══════════════════════════════════════════════════════════════════
+export default function QuizLobbyPage() {
+  const { code }   = useParams<{ code: string }>();
+  const router     = useRouter();
+  const { data: authSession } = useSession();
+
+  const [info,    setInfo]    = useState<SessionInfo | null>(null);
+  const [error,   setError]   = useState("");
+  const [joining, setJoining] = useState(false);
+  const [pulse,   setPulse]   = useState(false);
+  const [showBet, setShowBet] = useState(false);
+  const [betDone, setBetDone] = useState(false);
+
+  const countdown = useCountdown(info?.collection.scheduledActivateAt ?? null);
+
+  // Poll every 2 s
   useEffect(() => {
     let mounted = true;
     async function poll() {
@@ -82,14 +466,13 @@ export default function QuizLobbyPage() {
           if (prev && data.playerCount !== prev.playerCount) setPulse(true);
           return data as SessionInfo;
         });
-      } catch { /* network hiccup — keep previous */ }
+      } catch { /* keep prev */ }
     }
     poll();
     const id = setInterval(poll, 2000);
     return () => { mounted = false; clearInterval(id); void mounted; };
   }, [code]);
 
-  // Clear pulse animation
   useEffect(() => {
     if (!pulse) return;
     const id = setTimeout(() => setPulse(false), 600);
@@ -102,14 +485,11 @@ export default function QuizLobbyPage() {
       const res = await fetch(`/api/quiz/${code}/join`, { method: "POST" });
       if (!res.ok) {
         const d = await res.json();
-        setError(d.error ?? "Could not join");
-        setJoining(false);
-        return;
+        setError(d.error ?? "Could not join"); setJoining(false); return;
       }
       router.push(`/quiz/${code}/play`);
     } catch {
-      setError("Network error. Please try again.");
-      setJoining(false);
+      setError("Network error. Please try again."); setJoining(false);
     }
   }
 
@@ -117,38 +497,29 @@ export default function QuizLobbyPage() {
   const ended   = info?.session.status === "ENDED";
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4"
-      style={{ background: "linear-gradient(135deg, #0E4A3D 0%, #1A1A2E 60%, #0a1628 100%)" }}
-    >
-      {/* Decorative blobs */}
+    <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center p-4"
+      style={{ background: "linear-gradient(135deg,#0E4A3D 0%,#1A1A2E 60%,#0a1628 100%)" }}>
+
+      {/* Blobs */}
       <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-20"
-        style={{ background: "radial-gradient(circle, #1A6659, transparent)" }} />
+        style={{ background: "radial-gradient(circle,#1A6659,transparent)" }} />
       <div className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full opacity-15"
-        style={{ background: "radial-gradient(circle, #F0B429, transparent)" }} />
-      <div className="absolute top-1/3 right-1/4 w-48 h-48 rounded-full opacity-10"
-        style={{ background: "radial-gradient(circle, #1A6659, transparent)" }} />
+        style={{ background: "radial-gradient(circle,#F0B429,transparent)" }} />
 
-      {/* Floating particles */}
-      {[...Array(8)].map((_, i) => (
-        <div key={i}
-          className="absolute w-1.5 h-1.5 rounded-full bg-gold/30"
-          style={{
-            top:       `${10 + i * 11}%`,
-            left:      `${5 + i * 12}%`,
-            animation: `float ${3 + i * 0.4}s ease-in-out infinite alternate`,
-            animationDelay: `${i * 0.3}s`,
-          }}
-        />
+      {/* Particles */}
+      {[...Array(8)].map((_,i) => (
+        <div key={i} className="absolute w-1.5 h-1.5 rounded-full bg-gold/30"
+          style={{ top:`${10+i*11}%`, left:`${5+i*12}%`,
+            animation:`float ${3+i*0.4}s ease-in-out infinite alternate`,
+            animationDelay:`${i*0.3}s` }} />
       ))}
-
       <style>{`
-        @keyframes float { from { transform: translateY(0px); } to { transform: translateY(-14px); } }
-        @keyframes pop   { 0%,100%{transform:scale(1)} 50%{transform:scale(1.25)} }
+        @keyframes float{from{transform:translateY(0)}to{transform:translateY(-14px)}}
+        @keyframes pop{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
       `}</style>
 
-      {/* ── Card ── */}
-      <div className="relative z-10 w-full max-w-md">
-        {/* Top badge */}
+      <div className="relative z-10 w-full max-w-md flex flex-col items-center">
+        {/* LIVE badge */}
         <div className="flex justify-center mb-4">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white/80 text-xs font-medium">
             <span className="w-2 h-2 rounded-full bg-gold animate-pulse" />
@@ -156,127 +527,114 @@ export default function QuizLobbyPage() {
           </span>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-          {/* ── Header gradient ── */}
+        {/* Main card */}
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden w-full">
+          {/* Header */}
           <div className="relative px-6 pt-8 pb-6"
-            style={{ background: "linear-gradient(135deg, #1A6659 0%, #0E4A3D 100%)" }}
-          >
-            {/* Host */}
+            style={{ background: "linear-gradient(135deg,#1A6659 0%,#0E4A3D 100%)" }}>
             <p className="text-xs text-white/60 font-medium uppercase tracking-widest mb-2">
               Hosted by {info?.collection.hostName ?? "—"}
             </p>
-            <h1 className="text-2xl font-black text-white leading-tight mb-1">
+            <h1 className="text-2xl font-black text-white leading-tight">
               {info?.session.title ?? info?.collection.name ?? "Loading…"}
             </h1>
             {info?.collection.description && (
-              <p className="text-sm text-white/60 mt-1 line-clamp-2">
-                {info.collection.description}
-              </p>
+              <p className="text-sm text-white/60 mt-1 line-clamp-2">{info.collection.description}</p>
             )}
-
-            {/* Status chip */}
             <div className="absolute top-6 right-6">
               {ended ? (
-                <span className="px-3 py-1 bg-red-500/20 border border-red-400/40 rounded-full text-red-300 text-xs font-semibold">
-                  Ended
-                </span>
+                <span className="px-3 py-1 bg-red-500/20 border border-red-400/40 rounded-full text-red-300 text-xs font-semibold">Ended</span>
               ) : canPlay ? (
                 <span className="flex items-center gap-1.5 px-3 py-1 bg-green-500/20 border border-green-400/40 rounded-full text-green-300 text-xs font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping" />
-                  Active
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping" />Active
                 </span>
               ) : (
-                <span className="px-3 py-1 bg-yellow-500/20 border border-yellow-400/40 rounded-full text-yellow-300 text-xs font-semibold">
-                  Coming Soon
-                </span>
+                <span className="px-3 py-1 bg-yellow-500/20 border border-yellow-400/40 rounded-full text-yellow-300 text-xs font-semibold">Coming Soon</span>
               )}
             </div>
           </div>
 
-          {/* ── Prize pool ── */}
+          {/* Prize pool */}
           <div className="px-6 py-6 border-b border-gray-100">
-            <p className="text-xs text-gray-400 font-medium uppercase tracking-widest text-center mb-2">
-              Live Prize Pool
-            </p>
+            <p className="text-xs text-gray-400 font-medium uppercase tracking-widest text-center mb-2">Live Prize Pool</p>
             <div className="flex items-center justify-center gap-1">
               <span className="text-4xl font-black text-gold">₦</span>
               <span className="text-5xl font-black text-gold tabular-nums leading-none">
                 {info ? <PrizeCounter value={info.prizePool} /> : "—"}
               </span>
             </div>
-            <p className="text-center text-xs text-gray-400 mt-2">
-              Grows with every player who joins
-            </p>
+            <p className="text-center text-xs text-gray-400 mt-2">Grows with every player who joins</p>
           </div>
 
-          {/* ── Stats row ── */}
+          {/* Stats */}
           <div className="grid grid-cols-2 divide-x divide-gray-100 border-b border-gray-100">
-            {/* Players */}
             <div className="px-6 py-4 text-center">
               <div className="flex items-center justify-center gap-2 mb-1">
-                <span
-                  className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0"
-                  style={pulse ? { animation: "pop 0.6s ease" } : {}}
-                />
-                <span className="text-2xl font-black text-text-dark tabular-nums">
-                  {info?.playerCount ?? 0}
-                </span>
+                <span className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0"
+                  style={pulse ? { animation:"pop 0.6s ease" } : {}} />
+                <span className="text-2xl font-black text-text-dark tabular-nums">{info?.playerCount ?? 0}</span>
               </div>
               <p className="text-xs text-gray-400 font-medium">Players Joined</p>
             </div>
-            {/* Phases */}
             <div className="px-6 py-4 text-center">
               <span className="text-2xl font-black text-text-dark">5</span>
               <p className="text-xs text-gray-400 font-medium mt-1">Game Phases</p>
             </div>
           </div>
 
-          {/* ── Countdown (if scheduled) ── */}
+          {/* Countdown */}
           {!canPlay && countdown !== null && countdown > 0 && (
             <div className="px-6 py-4 bg-gold/5 border-b border-gold/20 text-center">
-              <p className="text-xs text-gold/70 font-medium uppercase tracking-wide mb-1">
-                Starts in
-              </p>
-              <p className="text-3xl font-black text-gold tabular-nums">{fmt(countdown)}</p>
+              <p className="text-xs text-gold/70 font-medium uppercase tracking-wide mb-1">Starts in</p>
+              <p className="text-3xl font-black text-gold tabular-nums">{fmtCountdown(countdown)}</p>
             </div>
           )}
 
-          {/* ── Error ── */}
+          {/* Error */}
           {error && (
-            <div className="mx-6 mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm text-center">
-              {error}
-            </div>
+            <div className="mx-6 mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm text-center">{error}</div>
           )}
 
-          {/* ── CTA ── */}
+          {/* CTA area */}
           <div className="px-6 py-6">
-            {ended ? (
-              <div className="py-4 text-center text-gray-500 text-sm">
-                This session has ended. Check back for the next round!
+            {betDone && (
+              <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm font-semibold mb-4">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-4 h-4 flex-shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
+                Bet placed! Good luck 🎯
               </div>
+            )}
+
+            {ended ? (
+              <p className="text-center text-gray-500 text-sm py-4">This session has ended.</p>
             ) : canPlay ? (
-              <button
-                onClick={handlePlay}
-                disabled={joining}
-                className="w-full py-4 rounded-2xl font-black text-lg text-text-dark transition-all active:scale-95 disabled:opacity-70 relative overflow-hidden"
-                style={{ background: "linear-gradient(135deg, #F0B429 0%, #d4981e 100%)" }}
-              >
-                {joining ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeDashoffset="10" />
+              <div className="flex flex-col gap-3">
+                <button onClick={handlePlay} disabled={joining}
+                  className="w-full py-4 rounded-2xl font-black text-lg text-text-dark transition-all active:scale-95 disabled:opacity-70"
+                  style={{ background: "linear-gradient(135deg,#F0B429,#d4981e)" }}>
+                  {joining ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeDashoffset="10"/>
+                      </svg>
+                      Joining…
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                      Play Now
+                    </span>
+                  )}
+                </button>
+                {!betDone && (
+                  <button onClick={() => { if (!authSession) { setError("Sign in to place a bet"); return; } setShowBet(true); }}
+                    className="w-full py-3 rounded-2xl font-bold text-sm border-2 border-primary text-primary hover:bg-primary/5 transition-colors flex items-center justify-center gap-2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                     </svg>
-                    Joining…
-                  </span>
-                ) : (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                      <polygon points="5 3 19 12 5 21 5 3" />
-                    </svg>
-                    Play Now
-                  </span>
+                    Place a Bet
+                  </button>
                 )}
-              </button>
+              </div>
             ) : (
               <div className="w-full py-4 rounded-2xl bg-gray-100 text-center text-gray-400 text-sm font-semibold">
                 {countdown === 0 ? "Starting soon…" : "Not available yet"}
@@ -284,25 +642,38 @@ export default function QuizLobbyPage() {
             )}
 
             <p className="text-center text-xs text-gray-400 mt-3">
-              {info?.playerCount
-                ? `Join ${info.playerCount} player${info.playerCount !== 1 ? "s" : ""} competing right now`
-                : "Be the first to join!"}
+              {info?.playerCount ? `${info.playerCount} player${info.playerCount !== 1 ? "s" : ""} competing` : "Be the first to join!"}
             </p>
           </div>
         </div>
 
-        {/* Phase preview strip */}
+        {/* Phase strip */}
         <div className="mt-4 flex gap-2 justify-center">
-          {["Flash", "Memory", "Sequence", "Fill-Gap", "True/False"].map((p, i) => (
+          {["Flash","Memory","Sequence","Fill-Gap","True/False"].map((p,i) => (
             <div key={i} className="flex flex-col items-center gap-1">
               <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                <span className="text-white/80 text-xs font-bold">{i + 1}</span>
+                <span className="text-white/80 text-xs font-bold">{i+1}</span>
               </div>
               <span className="text-white/50 text-[9px] font-medium">{p}</span>
             </div>
           ))}
         </div>
+
+        {/* Viewer referral card */}
+        <ViewerReferralCard code={code} playerCount={info?.playerCount ?? 0} />
       </div>
+
+      {/* Betting sheet */}
+      {showBet && info && (
+        <BettingSheet
+          players={info.players}
+          sessionId={info.session.id}
+          sessionCode={code}
+          userEmail={authSession?.user?.email ?? "user@bauin.app"}
+          onClose={() => setShowBet(false)}
+          onSuccess={() => { setShowBet(false); setBetDone(true); }}
+        />
+      )}
     </div>
   );
 }

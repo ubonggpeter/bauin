@@ -64,5 +64,10 @@ export async function POST(
   const rank = betterEntries + 1;
   await prisma.quizEntry.update({ where: { id: entryId }, data: { rank } });
 
-  return NextResponse.json({ totalScore, rank, phase1Score, phase2Score, phase3Score, phase4Score, phase5Score });
+  const totalPlayers = await prisma.quizEntry.count({
+    where: { quizSessionId: entry.quizSessionId },
+  });
+
+  void updated;
+  return NextResponse.json({ totalScore, rank, totalPlayers, phase1Score, phase2Score, phase3Score, phase4Score, phase5Score });
 }
