@@ -189,7 +189,8 @@ model User {
   referralsGiven         Referral[]        @relation("ReferralReferrer")
   referralsReceived      Referral[]        @relation("ReferralReferred")
   investmentRequests     InvestmentRequest[]
-  investments            Investment[]
+  investmentsAsInvestor  Investment[] @relation("InvestmentInvestor")
+  investmentsAsWorker    Investment[] @relation("InvestmentWorker")
   toolPoolMemberships    ToolPoolMember[]
   notifications          Notification[]
   auditLogs              AuditLog[]       @relation("AuditLogAdmin")
@@ -713,6 +714,8 @@ model InvestmentRequest {
   user        User                    @relation(fields: [userId], references: [id])
   amount      Decimal                 @db.Decimal(18, 2)
   description String?                 @db.Text
+  roiPct      Decimal                 @default(10) @db.Decimal(5, 2) @map("roi_pct")
+  months      Int                     @default(12)
   status      InvestmentRequestStatus @default(PENDING)
   reviewNote  String?                 @db.Text @map("review_note")
   reviewedAt  DateTime?               @map("reviewed_at")
@@ -723,18 +726,30 @@ model InvestmentRequest {
   investment Investment?
 
   @@index([userId])
+  @@index([status])
   @@map("investment_requests")
 }
 
 model Investment {
   id             String             @id @default(cuid())
   userId         String             @map("user_id")
-  user           User               @relation(fields: [userId], references: [id])
+  user           User               @relation("InvestmentInvestor", fields: [userId], references: [id])
+  workerId       String             @map("worker_id")
+  worker         User               @relation("InvestmentWorker", fields: [workerId], references: [id])
   requestId      String?            @unique @map("request_id")
   request        InvestmentRequest? @relation(fields: [requestId], references: [id])
   amount         Decimal            @db.Decimal(18, 2)
+  roiPct         Decimal            @default(10) @db.Decimal(5, 2) @map("roi_pct")
+  months         Int                @default(12)
   returnRate     Decimal            @db.Decimal(7, 4) @map("return_rate")
   expectedReturn Decimal            @db.Decimal(18, 2) @map("expected_return")
+  escrowBalance  Decimal            @default(0) @db.Decimal(18, 2) @map("escrow_balance")
+  releasedAmount Decimal            @default(0) @db.Decimal(18, 2) @map("released_amount")
+  milestonesPaid Int                @default(0) @map("milestones_paid")
+  lastRoiPaidAt  DateTime?          @map("last_roi_paid_at")
+  lastActivityAt DateTime?          @map("last_activity_at")
+  frozenAt       DateTime?          @map("frozen_at")
+  isFrozen       Boolean            @default(false) @map("is_frozen")
   maturityDate   DateTime           @map("maturity_date")
   status         InvestmentStatus   @default(ACTIVE)
   actualReturn   Decimal?           @db.Decimal(18, 2) @map("actual_return")
@@ -742,6 +757,8 @@ model Investment {
   createdAt      DateTime           @default(now()) @map("created_at")
 
   @@index([userId])
+  @@index([workerId])
+  @@index([status])
   @@map("investments")
 }
 
