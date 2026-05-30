@@ -45,6 +45,13 @@ enum RetryPolicy {
   AFTER_30D
 }
 
+enum TestAttemptStatus {
+  IN_PROGRESS
+  CERTIFIED
+  FAILED
+  ABANDONED
+}
+
 enum CorrectOption {
   A
   B
@@ -163,6 +170,8 @@ model User {
   userCategories         UserCategory[]
   topicProgress          UserTopicProgress[]
   testAttempts           TestAttempt[]
+  certificates           UserCertificate[]
+  achievements           UserAchievement[]
   storyPurchases         StoryPurchase[]
   distributorCollections DistributorCollection[]
   quizEntries            QuizEntry[]
@@ -204,6 +213,7 @@ model Category {
   courses        Course[]
   testQuestions  TestQuestion[]
   testAttempts   TestAttempt[]
+  certificates   UserCertificate[]
   quizSessions   QuizSession[]
 
   @@map("categories")
@@ -321,23 +331,91 @@ model TestQuestion {
 
 // answers_json: { [questionId]: "A" | "B" | "C" | "D" }
 model TestAttempt {
-  id           String   @id @default(cuid())
-  userId       String   @map("user_id")
-  user         User     @relation(fields: [userId], references: [id])
-  categoryId   String   @map("category_id")
-  category     Category @relation(fields: [categoryId], references: [id])
-  scorePct     Decimal  @db.Decimal(5, 2) @map("score_pct")
-  passed       Boolean
-  answersJson  Json     @map("answers_json")
-  durationSec  Int?     @map("duration_sec")
-  isRetry      Boolean  @default(false) @map("is_retry")
-  retryFeePaid Boolean  @default(false) @map("retry_fee_paid")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id             String            @id @default(cuid())
+  userId         String            @map("user_id")
+  user           User              @relation(fields: [userId], references: [id])
+  categoryId     String            @map("category_id")
+  category       Category          @relation(fields: [categoryId], references: [id])
+  status         TestAttemptStatus @default(IN_PROGRESS) @map("status")
+  scorePct       Decimal?          @db.Decimal(5, 2) @map("score_pct")
+  passed         Boolean?
+  answersJson    Json?             @map("answers_json")
+  questionData   Json?             @map("question_data")
+  startedAt      DateTime          @default(now()) @map("started_at")
+  completedAt    DateTime?         @map("completed_at")
+  durationSec    Int?              @map("duration_sec")
+  isRetry        Boolean           @default(false) @map("is_retry")
+  retryFeePaid   Boolean           @default(false) @map("retry_fee_paid")
+  certificateUrl String?           @map("certificate_url")
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  answers     TestAnswer[]
+  certificate UserCertificate?
 
   @@index([userId])
   @@index([categoryId])
   @@index([userId, categoryId])
+  @@index([status])
   @@map("test_attempts")
+}
+
+model TestAnswer {
+  id            String      @id @default(cuid())
+  attemptId     String      @map("attempt_id")
+  attempt       TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId    String      @map("question_id")
+  displayAnswer String?     @map("display_answer")
+  mappedAnswer  String?     @map("mapped_answer")
+  answeredAt    DateTime?   @map("answered_at")
+  timeTakenMs   Int?        @map("time_taken_ms")
+  flaggedFast   Boolean     @default(false) @map("flagged_fast")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@map("test_answers")
+}
+
+model UserCertificate {
+  id             String      @id @default(cuid())
+  userId         String      @map("user_id")
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId     String      @map("category_id")
+  category       Category    @relation(fields: [categoryId], references: [id])
+  attemptId      String      @unique @map("attempt_id")
+  attempt        TestAttempt @relation(fields: [attemptId], references: [id])
+  score          Int
+  certificateUrl String      @map("certificate_url")
+  issuedAt       DateTime    @default(now()) @map("issued_at")
+
+  @@unique([userId, categoryId])
+  @@index([userId])
+  @@map("user_certificates")
+}
+
+model Achievement {
+  id          String            @id @default(cuid())
+  key         String            @unique
+  name        String
+  description String
+  icon        String
+  createdAt   DateTime          @default(now()) @map("created_at")
+  users       UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String      @map("user_id")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String      @map("achievement_id")
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  earnedAt      DateTime    @default(now()) @map("earned_at")
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@map("user_achievements")
 }
 
 // ╔══════════════════════════════════════════════╗
