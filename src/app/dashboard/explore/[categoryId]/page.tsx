@@ -415,12 +415,13 @@ export default function CategoryTopicsPage({ params }: { params: { categoryId: s
             <p className="font-bold text-text-dark text-base">All topics complete! 🎉</p>
             <p className="text-text-dark/70 text-sm mt-0.5">You're ready to take the certification test.</p>
           </div>
-          <button
-            className="flex-shrink-0 bg-text-dark text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-black transition-colors animate-pulse"
+          <Link
+            href={`/dashboard/explore/${category.id}/test`}
+            className="flex-shrink-0 bg-text-dark text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-black transition-colors animate-pulse text-center"
             style={{ animationDuration: "2s" }}
           >
             Take Test!
-          </button>
+          </Link>
         </div>
       )}
 

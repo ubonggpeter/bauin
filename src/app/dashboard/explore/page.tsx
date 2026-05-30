@@ -98,7 +98,7 @@ function CategoryCard({
       {/* Action button */}
       {complete ? (
         <Link
-          href={`/dashboard/explore/${category.id}`}
+          href={`/dashboard/explore/${category.id}/test`}
           className="w-full text-center py-2.5 rounded-xl text-sm font-bold text-text-dark animate-pulse"
           style={{
             background: "linear-gradient(135deg, #F0B429 0%, #f5c842 100%)",
