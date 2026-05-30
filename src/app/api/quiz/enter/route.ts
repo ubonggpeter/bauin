@@ -8,10 +8,11 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getNumericSetting } from "@/lib/server/platform-settings";
+import { getAllSettings } from "@/lib/server/platform-settings";
 import {
   getCachedSession, invalidateCachedSession,
 } from "@/lib/server/quiz-cache";
+import { onViewerQuizEntry } from "@/lib/server/referral-earnings";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,9 @@ export async function POST(req: Request) {
   if (!code || !paystackReference) {
     return NextResponse.json({ error: "code and paystackReference are required" }, { status: 400 });
   }
+
+  // ── Load settings once (for referral + entry fee) ────────────
+  const settings = await getAllSettings();
 
   // ── Load collection (cache-first) ────────────────────────────
   const cached = await getCachedSession(code);
@@ -97,7 +101,7 @@ export async function POST(req: Request) {
   }
 
   // ── Verify payment ────────────────────────────────────────────
-  const entryFee = cached?.entryFee ?? await getNumericSetting("QUIZ_ENTRY_FEE", 500);
+  const entryFee = cached?.entryFee ?? Math.max(0, Number(settings["QUIZ_ENTRY_FEE"] ?? "500"));
   const { ok }   = await verifyPaystack(paystackReference, entryFee);
   if (!ok) {
     return NextResponse.json({ error: "Payment verification failed" }, { status: 402 });
@@ -121,19 +125,9 @@ export async function POST(req: Request) {
       });
     }
 
-    // Viewer referral tracking
+    // Viewer referral tracking (increments recruitsCount, creates LOCKED earning, unlocks if threshold met)
     if (viewerReferrerId && viewerReferrerId !== userId) {
-      await tx.referral.upsert({
-        where: { referrerId_referredId: { referrerId: viewerReferrerId, referredId: userId } },
-        create: {
-          referrerId:      viewerReferrerId,
-          referredId:      userId,
-          type:            "VIEWER",
-          recruitsCount:   1,
-          unlockThreshold: 5, // unlock earnings after 5 recruits
-        },
-        update: { recruitsCount: { increment: 1 } },
-      });
+      await onViewerQuizEntry(tx, viewerReferrerId, userId, entryFee, quizSession!.id, settings);
     }
 
     return { entry, doubled: false };

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getAllSettings } from "@/lib/server/platform-settings";
+import { onPaymentReferralCredit } from "@/lib/server/referral-earnings";
 
 export const dynamic = "force-dynamic";
 
@@ -235,6 +236,18 @@ export async function POST(req: Request) {
           },
         },
       });
+    }
+
+    // 5. Worker referral bonus (50% default) for the buyer's referrer
+    if (!story.isFree) {
+      await onPaymentReferralCredit(
+        tx,
+        userId,
+        amountPaid,
+        paystackReference,
+        `story:${storyId}`,
+        settings,
+      );
     }
 
     return {
