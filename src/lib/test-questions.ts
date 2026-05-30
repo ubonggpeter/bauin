@@ -7,6 +7,7 @@ export type Question = {
 
 export type CategoryQuestions = {
   questions: Question[];
+  topicTitles: string[]; // 5 titles, index matches Math.floor(questionIndex / 2)
   config: { count: number; passPercent: number; timeLimitMin: number };
 };
 
@@ -23,6 +24,13 @@ const q = (
 const BANK: Record<string, CategoryQuestions> = {
   "ai-content": {
     config: { count: 10, passPercent: 70, timeLimitMin: 20 },
+    topicTitles: [
+      "Introduction to AI Content Creation",
+      "Mastering Prompt Engineering",
+      "Content Strategy with AI",
+      "SEO & AI-Optimised Writing",
+      "Monetising Your AI Content",
+    ],
     questions: [
       q("ac1", "What is the primary purpose of prompt engineering?",
         "Designing graphics for AI tools",
@@ -89,6 +97,13 @@ const BANK: Record<string, CategoryQuestions> = {
 
   "data-analyst": {
     config: { count: 10, passPercent: 70, timeLimitMin: 20 },
+    topicTitles: [
+      "Foundations of Data Analysis",
+      "AI-Powered Data Visualisation",
+      "Machine Learning for Analysts",
+      "Working with Large Datasets",
+      "Presenting Insights & Reports",
+    ],
     questions: [
       q("da1", "What is the key difference between correlation and causation?",
         "Correlation is always stronger than causation",
@@ -155,6 +170,13 @@ const BANK: Record<string, CategoryQuestions> = {
 
   "developer": {
     config: { count: 10, passPercent: 70, timeLimitMin: 20 },
+    topicTitles: [
+      "AI Development Fundamentals",
+      "Building with OpenAI & Gemini APIs",
+      "Fine-tuning & Advanced Prompting",
+      "Deploying AI Applications",
+      "AI Security & Ethics",
+    ],
     questions: [
       q("dev1", "Fine-tuning a language model involves:",
         "Adjusting API rate limits for production",
@@ -221,6 +243,13 @@ const BANK: Record<string, CategoryQuestions> = {
 
   "marketer": {
     config: { count: 10, passPercent: 70, timeLimitMin: 20 },
+    topicTitles: [
+      "Digital Marketing Foundations",
+      "AI-Powered Campaign Management",
+      "Social Media Automation",
+      "Analytics & Performance Tracking",
+      "Conversion Rate Optimisation",
+    ],
     questions: [
       q("mk1", "In digital marketing, a 'conversion' most commonly refers to:",
         "Changing a website's visual design",
@@ -287,6 +316,13 @@ const BANK: Record<string, CategoryQuestions> = {
 
   "tutor": {
     config: { count: 10, passPercent: 70, timeLimitMin: 20 },
+    topicTitles: [
+      "Principles of AI-Assisted Teaching",
+      "Creating Course Content with AI",
+      "Student Engagement Strategies",
+      "Assessment & Certification Design",
+      "Building Your Tutoring Business",
+    ],
     questions: [
       q("tu1", "Which learning theory emphasises learning through active experience and doing?",
         "Behaviourism",
@@ -353,6 +389,13 @@ const BANK: Record<string, CategoryQuestions> = {
 
   "video-editor": {
     config: { count: 10, passPercent: 70, timeLimitMin: 20 },
+    topicTitles: [
+      "Introduction to AI Video Tools",
+      "Automated Editing Techniques",
+      "AI-Generated B-Roll & Assets",
+      "Color Grading with AI Assistance",
+      "Publishing & Monetisation",
+    ],
     questions: [
       q("ve1", "Colour grading in video production involves:",
         "Rating videos by production quality",
@@ -419,6 +462,13 @@ const BANK: Record<string, CategoryQuestions> = {
 
   "crypto": {
     config: { count: 10, passPercent: 70, timeLimitMin: 20 },
+    topicTitles: [
+      "Blockchain & Crypto Fundamentals",
+      "DeFi Protocols & Yield Strategies",
+      "Technical Analysis & Charting",
+      "Risk Management in Crypto",
+      "Building a Crypto Portfolio",
+    ],
     questions: [
       q("cr1", "A blockchain's 'consensus mechanism' is responsible for:",
         "Encrypting user wallet private keys",
