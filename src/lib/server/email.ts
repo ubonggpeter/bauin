@@ -40,6 +40,60 @@ export async function sendReferralUnlockedEmail(
   }
 }
 
+export async function sendWithdrawalStatusEmail(
+  to: string,
+  name: string,
+  amount: number,
+  status: "PROCESSING" | "COMPLETED" | "FAILED",
+  reason?: string,
+): Promise<void> {
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) return;
+
+  sgMail.setApiKey(apiKey);
+
+  const fmt = `₦${amount.toLocaleString()}`;
+  const subjects: Record<string, string> = {
+    PROCESSING: `Your ₦${amount.toLocaleString()} withdrawal is being processed`,
+    COMPLETED:  `${fmt} has been sent to your bank account!`,
+    FAILED:     `Your ${fmt} withdrawal could not be processed`,
+  };
+  const icons: Record<string, string> = {
+    PROCESSING: "⏳",
+    COMPLETED:  "✅",
+    FAILED:     "❌",
+  };
+  const bodies: Record<string, string> = {
+    PROCESSING: `Your withdrawal of <strong>${fmt}</strong> has been initiated and is on its way to your bank account.`,
+    COMPLETED:  `Your withdrawal of <strong style="color:#1A6659;">${fmt}</strong> has been successfully sent to your bank account. Please allow 1-3 hours for it to reflect.`,
+    FAILED:     `We were unable to process your withdrawal of <strong>${fmt}</strong>. The funds have been returned to your BAUIN wallet.${reason ? `<br/><br/><strong>Reason:</strong> ${reason}` : ""}`,
+  };
+
+  try {
+    await sgMail.send({
+      to,
+      from: process.env.EMAIL_FROM ?? "noreply@bauin.com",
+      subject: subjects[status],
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#f5f7f6;padding:20px;">
+          <div style="background:linear-gradient(135deg,#1A6659,#0E4A3D);padding:40px 32px;text-align:center;border-radius:16px 16px 0 0;">
+            <h1 style="color:#F0B429;margin:0 0 6px;font-size:32px;letter-spacing:2px;">BAUIN</h1>
+            <p style="color:rgba(255,255,255,0.75);margin:0;font-size:13px;letter-spacing:1px;">BILLIONAIRES AI USERS INCOME NETWORK</p>
+          </div>
+          <div style="background:white;padding:36px 32px;border-radius:0 0 16px 16px;border:1px solid #e0e0e0;border-top:none;">
+            <h2 style="color:#1A1A2E;margin-top:0;">${icons[status]} Withdrawal Update, ${name}</h2>
+            <p style="color:#555;font-size:15px;line-height:1.6;">${bodies[status]}</p>
+            <hr style="border:none;border-top:1px solid #e0e0e0;margin:32px 0 24px;" />
+            <p style="color:#999;font-size:13px;margin:0;">Visit your BAUIN wallet to view your transaction history.</p>
+          </div>
+        </div>
+      `,
+    });
+  } catch {
+    // non-critical
+  }
+}
+
 export async function sendCertificationEmail(
   to: string,
   name: string,
