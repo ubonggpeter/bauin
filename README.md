@@ -98,6 +98,41 @@ npm run db:migrate
 npm run db:generate
 ```
 
+### 4. Seed development data
+
+```bash
+npx prisma db seed
+```
+
+This populates the database with a full set of dev fixtures. **Never run against production.**
+
+#### Dev credentials
+
+| Role | Email | Password |
+|------|-------|----------|
+| Super Admin | admin@bauin.com | Admin@2025! |
+| Worker 1 | worker1@bauin.com | Worker@2025! |
+| Worker 2 | worker2@bauin.com | Worker@2025! |
+| Worker 3 | worker3@bauin.com | Worker@2025! |
+| Worker 4 | worker4@bauin.com | Worker@2025! |
+| Worker 5 | worker5@bauin.com | Worker@2025! |
+| Seller 1 | seller1@bauin.com | Seller@2025! |
+| Seller 2 | seller2@bauin.com | Seller@2025! |
+| Seller 3 | seller3@bauin.com | Seller@2025! |
+| Distributor 1 | dist1@bauin.com | Dist@2025! |
+| Distributor 2 | dist2@bauin.com | Dist@2025! |
+| Distributor 3 | dist3@bauin.com | Dist@2025! |
+| Distributor 4 | dist4@bauin.com | Dist@2025! |
+| Distributor 5 | dist5@bauin.com | Dist@2025! |
+
+What the seed creates:
+- 1 Super Admin with full platform access
+- 7 categories (AI Content, Data Analytics, AI Developer, Digital Marketing, AI Tutor, Video Editing, Crypto/DeFi) — each with 5 topics × 3 sub-topics and 20 A/B/C/D questions with explanations
+- 5 Worker users — each CERTIFIED in all 7 categories with wallets seeded to ₦5,000
+- 3 Sellers — each with 2 published stories (5 episodes each with memory-game content)
+- 5 Distributors — each with an active DistributorCollection and a running QuizSession (all 5 workers enrolled)
+- Platform settings defaults (registration fee, category fee, commission rates, etc.)
+
 ### 4. Run development servers
 
 ```bash
@@ -161,7 +196,9 @@ npm run build        # Next.js production build
 npm run server:dev   # Express dev server (ts-node)
 npm run server:build # Compile Express to JS
 npm run db:migrate   # Run Prisma migrations
+npm run db:generate  # Regenerate Prisma client
 npm run db:studio    # Open Prisma Studio
+npx prisma db seed   # Seed dev fixtures (see Dev credentials above)
 npm run lint         # ESLint
 ```
 
