@@ -10,6 +10,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCachedSession } from "@/lib/server/quiz-cache";
+import { getCachedGameContent, aiToGamePhases } from "@/lib/server/game-content";
 
 export const dynamic = "force-dynamic";
 
@@ -151,14 +152,25 @@ export async function GET(
     if (episode?.gameContentJson) {
       const raw = episode.gameContentJson as Record<string, unknown>;
 
-      // Case 1: pre-authored phases
-      if (raw.phases && typeof raw.phases === "object") {
+      // Case 1: AI-generated content (highest priority)
+      if (raw.aiContent) {
+        const aiPhases = aiToGamePhases(raw.aiContent as Parameters<typeof aiToGamePhases>[0]);
+        gameContent = aiPhases;
+      }
+      // Case 2: pre-authored phases
+      else if (raw.phases && typeof raw.phases === "object") {
         gameContent = raw.phases as GameContent;
       }
-      // Case 2: derive from MCQ questions
+      // Case 3: derive from MCQ questions
       else if (Array.isArray(raw.questions) && raw.questions.length > 0) {
         gameContent = deriveFromQuestions(raw.questions as EpisodeQ[]);
       }
+    }
+
+    // Warm Redis cache if AI content wasn't already cached
+    if (episodeId && (episode?.gameContentJson as Record<string, unknown>)?.aiContent) {
+      const cached = await getCachedGameContent(episodeId);
+      void cached;
     }
   } else if (!cached) {
     // Try to find an active session in DB for this code
@@ -181,8 +193,11 @@ export async function GET(
         });
         if (episode?.gameContentJson) {
           const raw = episode.gameContentJson as Record<string, unknown>;
-          if (raw.phases) gameContent = raw.phases as GameContent;
-          else if (Array.isArray(raw.questions) && raw.questions.length > 0) {
+          if (raw.aiContent) {
+            gameContent = aiToGamePhases(raw.aiContent as Parameters<typeof aiToGamePhases>[0]);
+          } else if (raw.phases) {
+            gameContent = raw.phases as GameContent;
+          } else if (Array.isArray(raw.questions) && raw.questions.length > 0) {
             gameContent = deriveFromQuestions(raw.questions as EpisodeQ[]);
           }
         }

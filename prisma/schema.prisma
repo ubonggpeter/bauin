@@ -481,6 +481,7 @@ model Episode {
   title           String
   episodeNumber   Int      @map("episode_number")
   description     String?  @db.Text
+  textContent     String?  @db.Text @map("text_content")
   contentUrl      String?  @map("content_url")
   gameContentJson Json     @map("game_content_json")
   isFree          Boolean  @default(false) @map("is_free")
