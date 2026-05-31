@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getCategoryConfig } from "@/lib/server/settings";
-import { generateCertificateSvg, uploadCertificate } from "@/lib/server/certificates";
+import { generateAndUploadCertificate } from "@/lib/server/certificates";
 import { checkAchievements } from "@/lib/server/achievements";
 import { sendCertificationEmail } from "@/lib/server/email";
 
@@ -75,30 +75,38 @@ export async function POST(req: Request) {
       prisma.category.findUnique({ where: { id: attempt.categoryId }, select: { name: true } }),
     ]);
 
-    const svgContent = generateCertificateSvg(
-      user?.name ?? "Graduate",
-      category?.name ?? "Certification",
-      scorePct,
-      completedAt
-    );
-    const certificateUrl = await uploadCertificate(userId, attempt.categoryId, attemptId, svgContent);
+    const { url: certificateUrl, certId } = await generateAndUploadCertificate({
+      userId,
+      categoryId:   attempt.categoryId,
+      userName:     user?.name    ?? "Graduate",
+      categoryName: category?.name ?? "Certification",
+      score:        scorePct,
+      issuedAt:     completedAt,
+    });
 
     await prisma.testAttempt.update({
       where: { id: attemptId },
-      data: { status: "CERTIFIED", scorePct, passed: true, completedAt, durationSec, certificateUrl },
+      data:  { status: "CERTIFIED", scorePct, passed: true, completedAt, durationSec, certificateUrl },
     });
 
     await prisma.userCertificate.upsert({
-      where: { userId_categoryId: { userId, categoryId: attempt.categoryId } },
+      where:  { userId_categoryId: { userId, categoryId: attempt.categoryId } },
       create: {
+        publicId:       certId,
         userId,
-        categoryId: attempt.categoryId,
+        categoryId:     attempt.categoryId,
         attemptId,
-        score: scorePct,
+        score:          scorePct,
         certificateUrl: certificateUrl ?? "",
-        issuedAt: completedAt,
+        issuedAt:       completedAt,
       },
-      update: { attemptId, score: scorePct, certificateUrl: certificateUrl ?? "", issuedAt: completedAt },
+      update: {
+        publicId:       certId,
+        attemptId,
+        score:          scorePct,
+        certificateUrl: certificateUrl ?? "",
+        issuedAt:       completedAt,
+      },
     });
 
     if (user && category) {
@@ -111,7 +119,9 @@ export async function POST(req: Request) {
       scorePct,
       correct,
       total,
+      certId,
       certificateUrl,
+      verifyUrl:   `https://bauin.com/verify/${certId}`,
       completedAt: completedAt.toISOString(),
     });
   }

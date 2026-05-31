@@ -407,6 +407,7 @@ model TestAnswer {
 
 model UserCertificate {
   id             String      @id @default(cuid())
+  publicId       String      @unique @map("public_id")
   userId         String      @map("user_id")
   user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   categoryId     String      @map("category_id")
