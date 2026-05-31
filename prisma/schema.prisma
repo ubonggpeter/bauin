@@ -38,6 +38,18 @@ enum KycStatus {
   REJECTED
 }
 
+enum FraudFlagType {
+  RAPID_ANSWERS       // any answer submitted under 0.8 s
+  SAME_IP_QUIZ_REPLAY // same IP joins same quiz 3+ times in one day
+  SHARED_PHONE        // phone number registered on multiple accounts
+}
+
+enum FraudSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 enum RetryPolicy {
   IMMEDIATE
   AFTER_24H
@@ -189,6 +201,8 @@ model User {
   lastLoginAt          DateTime? @map("last_login_at")
   loginStreak          Int       @default(0) @map("login_streak")
   loginStreakUpdatedAt DateTime? @map("login_streak_updated_at")
+  ninHash              String?   @unique @map("nin_hash")
+  fraudSuspendedAt     DateTime? @map("fraud_suspended_at")
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
 
@@ -215,6 +229,8 @@ model User {
   withdrawalRequests     WithdrawalRequest[]
   scriptGenerations      ScriptGeneration[]
   pushSubscriptions      PushSubscription[]
+  kycDocument            KycDocument?
+  fraudFlags             FraudFlag[]
 
   @@index([referredById])
   @@index([referralCode])
@@ -584,9 +600,11 @@ model QuizEntry {
   phase4Score   Int         @default(0) @map("phase4_score")
   phase5Score   Int         @default(0) @map("phase5_score")
   totalScore    Int         @default(0) @map("total_score")
-  rank          Int?
-  completedAt   DateTime?   @map("completed_at")
-  createdAt     DateTime    @default(now()) @map("created_at")
+  rank            Int?
+  ipAddress       String?   @map("ip_address")
+  minAnswerTimeMs Int?      @map("min_answer_time_ms")
+  completedAt     DateTime? @map("completed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
 
   @@unique([quizSessionId, userId])
   @@index([quizSessionId])
@@ -986,4 +1004,49 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║               KYC                           ║
+// ╚══════════════════════════════════════════════╝
+
+model KycDocument {
+  id           String    @id @default(cuid())
+  userId       String    @unique @map("user_id")
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ninHash      String    @unique @map("nin_hash")
+  docType      String    @map("doc_type")   // NIN_SLIP | INTL_PASSPORT | DRIVERS_LICENSE
+  docKey       String    @map("doc_key")    // private R2 object key — never expose
+  autoApproved Boolean   @default(false) @map("auto_approved")
+  reviewNote   String?   @db.Text @map("review_note")
+  reviewedAt   DateTime? @map("reviewed_at")
+  reviewedById String?   @map("reviewed_by_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@index([reviewedById])
+  @@map("kyc_documents")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║            FRAUD FLAGS                       ║
+// ╚══════════════════════════════════════════════╝
+
+model FraudFlag {
+  id           String        @id @default(cuid())
+  userId       String        @map("user_id")
+  user         User          @relation(fields: [userId], references: [id])
+  type         FraudFlagType
+  severity     FraudSeverity
+  evidence     Json          // { ip?, quizSessionId?, phone?, count?, answerTimeMs? }
+  resolved     Boolean       @default(false)
+  resolvedAt   DateTime?     @map("resolved_at")
+  resolvedById String?       @map("resolved_by_id")
+  note         String?       @db.Text
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([type, resolved])
+  @@index([severity, resolved])
+  @@map("fraud_flags")
 }

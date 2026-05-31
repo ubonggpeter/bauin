@@ -1,12 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { extractIp, checkIpQuizReplay } from "@/lib/server/fraud";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: { code: string } }
 ) {
   const session = await getServerSession(authOptions);
@@ -37,11 +38,13 @@ export async function POST(
     return NextResponse.json({ error: "No active session" }, { status: 404 });
   }
 
-  // Upsert entry (idempotent — safe to call multiple times)
+  const ipAddress = extractIp(req);
+
+  // Upsert entry — store IP for fraud detection
   const entry = await prisma.quizEntry.upsert({
     where:  { quizSessionId_userId: { quizSessionId: quizSession.id, userId } },
-    create: { quizSessionId: quizSession.id, userId },
-    update: {},
+    create: { quizSessionId: quizSession.id, userId, ipAddress: ipAddress || null },
+    update: { ipAddress: ipAddress || undefined },
   });
 
   // Mark session as ACTIVE on first join (if still PENDING)
@@ -50,6 +53,11 @@ export async function POST(
       where: { id: quizSession.id },
       data:  { status: "ACTIVE", startedAt: new Date() },
     });
+  }
+
+  // Fraud check — runs after response is formed; fire-and-forget
+  if (ipAddress) {
+    checkIpQuizReplay(userId, quizSession.id, ipAddress).catch(() => {});
   }
 
   return NextResponse.json({ entryId: entry.id, sessionId: quizSession.id });

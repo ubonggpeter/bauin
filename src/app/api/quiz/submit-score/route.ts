@@ -12,16 +12,18 @@ import {
   getCachedLeaderboard, setCachedLeaderboard,
   invalidateCachedLeaderboard, publishScoreUpdate,
 } from "@/lib/server/quiz-cache";
+import { checkRapidAnswers } from "@/lib/server/fraud";
 
 export const dynamic = "force-dynamic";
 
 type ScoreBody = {
-  entryId:     string;
-  phase1Score: number;
-  phase2Score: number;
-  phase3Score: number;
-  phase4Score: number;
-  phase5Score: number;
+  entryId:         string;
+  phase1Score:     number;
+  phase2Score:     number;
+  phase3Score:     number;
+  phase4Score:     number;
+  phase5Score:     number;
+  minAnswerTimeMs?: number;  // client-reported min time to answer any single question (ms)
 };
 
 export async function POST(req: Request) {
@@ -35,7 +37,10 @@ export async function POST(req: Request) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Invalid body" }, { status: 400 }); }
 
-  const { entryId, phase1Score, phase2Score, phase3Score, phase4Score, phase5Score } = body;
+  const {
+    entryId, phase1Score, phase2Score, phase3Score, phase4Score, phase5Score,
+    minAnswerTimeMs,
+  } = body;
 
   const entry = await prisma.quizEntry.findUnique({
     where:   { id: entryId },
@@ -53,9 +58,15 @@ export async function POST(req: Request) {
     data: {
       phase1Score, phase2Score, phase3Score, phase4Score, phase5Score,
       totalScore,
-      completedAt: new Date(),
+      completedAt:    new Date(),
+      minAnswerTimeMs: typeof minAnswerTimeMs === "number" ? minAnswerTimeMs : undefined,
     },
   });
+
+  // Fraud check — rapid answers (fire-and-forget)
+  if (typeof minAnswerTimeMs === "number") {
+    checkRapidAnswers(userId, minAnswerTimeMs, entry.quizSessionId).catch(() => {});
+  }
 
   // ── Rank calculation ──────────────────────────────────────────
   const betterCount = await prisma.quizEntry.count({
