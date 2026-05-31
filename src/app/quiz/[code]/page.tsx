@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { usePaystackPayment } from "react-paystack";
@@ -84,6 +84,34 @@ function BettingSheet({
   const [psRef,       setPsRef]       = useState("");
   const [error,       setError]       = useState("");
 
+  // Swipe-down to close
+  const sheetRef      = useRef<HTMLDivElement>(null);
+  const touchStartY   = useRef(0);
+  const dragDistance  = useRef(0);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    if (sheetRef.current) sheetRef.current.style.transition = "none";
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    const delta = e.touches[0].clientY - touchStartY.current;
+    if (delta > 0 && sheetRef.current) {
+      dragDistance.current = delta;
+      sheetRef.current.style.transform = `translateY(${delta}px)`;
+    }
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    if (dragDistance.current > 90) {
+      onClose();
+    } else if (sheetRef.current) {
+      sheetRef.current.style.transition = "transform 0.3s ease";
+      sheetRef.current.style.transform = "translateY(0)";
+    }
+    dragDistance.current = 0;
+  }, [onClose]);
+
   const chosenType  = BET_TYPES.find((t) => t.id === betType);
   const stakeNum    = Math.max(0, parseInt(stake) || 0);
   const potentialWin = stakeNum * (chosenType?.multiplier ?? 1);
@@ -161,10 +189,17 @@ function BettingSheet({
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{ background: "rgba(0,0,0,0.55)" }}
     >
-      <div className="w-full bg-white rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden">
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-gray-200" />
+      <div
+        ref={sheetRef}
+        className="w-full bg-white rounded-t-3xl max-h-[90vh] flex flex-col overflow-hidden"
+        style={{ transition: "transform 0.3s ease" }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* Drag handle — visual affordance for swipe-down */}
+        <div className="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing">
+          <div className="w-10 h-1.5 rounded-full bg-gray-300" />
         </div>
 
         {/* Header */}

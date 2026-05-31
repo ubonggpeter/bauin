@@ -124,7 +124,7 @@ export default function DashboardPage() {
           <p className="text-gold text-4xl font-black mb-1">₦0.00</p>
           <p className="text-primary-light text-xs mb-6">+₦0 this month</p>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="bg-white/10 rounded-xl p-3">
               <p className="text-primary-light text-[10px] leading-none mb-1">Wallet Balance</p>
               <p className="text-white font-bold text-sm">₦0.00</p>
@@ -135,6 +135,10 @@ export default function DashboardPage() {
             </div>
             <div className="bg-white/10 rounded-xl p-3">
               <p className="text-primary-light text-[10px] leading-none mb-1">Network</p>
+              <p className="text-white font-bold text-sm">0</p>
+            </div>
+            <div className="bg-white/10 rounded-xl p-3">
+              <p className="text-primary-light text-[10px] leading-none mb-1">Certifications</p>
               <p className="text-white font-bold text-sm">0</p>
             </div>
           </div>

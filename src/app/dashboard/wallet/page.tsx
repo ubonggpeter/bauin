@@ -340,7 +340,7 @@ export default function WalletPage() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm min-w-[600px]">
                     <thead>
                       <tr className="bg-bg-light text-gray-400 text-xs uppercase tracking-wide">
                         <th className="px-5 py-3 text-left font-medium">Type</th>

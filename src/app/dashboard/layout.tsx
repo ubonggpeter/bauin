@@ -3,6 +3,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+// Items shown in the mobile bottom tab bar (≤5 to fit 375 px)
+const MOBILE_TAB_LABELS = ["Home", "Explore", "Compete", "Wallet", "Profile"];
+
 const NAV = [
   {
     href: "/dashboard",
@@ -283,24 +286,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </main>
 
       {/* ── Mobile bottom tab bar ── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-border flex items-center justify-around px-2 py-1 safe-area-inset-bottom">
-        {NAV.map((item) => {
-          const active = isActive(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-colors min-w-0 ${
-                active ? "text-primary" : "text-gray-400"
-              }`}
-            >
-              {item.icon}
-              <span className={`text-[10px] font-medium leading-none ${active ? "text-primary" : "text-gray-400"}`}>
-                {item.label}
-              </span>
-            </Link>
-          );
-        })}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-border safe-area-inset-bottom">
+        <div className="flex items-stretch justify-around px-1">
+          {NAV.filter((item) => MOBILE_TAB_LABELS.includes(item.label)).map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 min-h-[56px] transition-colors ${
+                  active ? "text-primary" : "text-gray-400"
+                }`}
+              >
+                {item.icon}
+                <span className={`text-[10px] font-medium leading-none mt-0.5 ${active ? "text-primary" : "text-gray-400"}`}>
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </nav>
     </div>
   );

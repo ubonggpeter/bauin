@@ -107,7 +107,7 @@ function Phase1Flash({ cards, onDone }: { cards: FlashCard[]; onDone: (s: number
 
   const card = cards[idx];
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-4 pt-16"
+    <div className="flex flex-col items-center justify-center min-h-[100dvh] px-4 pt-14"
       style={{ background:"linear-gradient(160deg,#0E4A3D,#1A1A2E)" }}>
       <p className="text-gold text-sm font-semibold uppercase tracking-widest mb-8">
         Card {idx+1} of {cards.length}
@@ -148,6 +148,20 @@ function Phase1Flash({ cards, onDone }: { cards: FlashCard[]; onDone: (s: number
 type MemCard = { id: string; pairId: string; content: string; state: "hidden"|"revealed"|"matched" };
 
 function Phase2Memory({ pairs, onDone }: { pairs: MemoryPair[]; onDone: (s: number) => void }) {
+  // Landscape: 3 cols × 4 rows = 12 cards (6 pairs). Portrait: 4×4 = 16 cards (8 pairs).
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(orientation: landscape)");
+    setIsLandscape(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsLandscape(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  const activePairs = isLandscape ? pairs.slice(0, 6) : pairs;
+
   const [cards, setCards] = useState<MemCard[]>(() => {
     const flat = pairs.flatMap((p) => [
       { id:`${p.id}-a`, pairId:p.id, content:p.a, state:"hidden" as const },
@@ -162,11 +176,51 @@ function Phase2Memory({ pairs, onDone }: { pairs: MemoryPair[]; onDone: (s: numb
   const [flipped, setFlipped] = useState<string[]>([]);
   const [matched,  setMatched] = useState(0);
   const [locked,   setLocked]  = useState(false);
-  const startRef = useRef(Date.now());
+  const startRef   = useRef(Date.now());
+  const pairsRef   = useRef(activePairs);
+
+  // Recompute active cards when orientation changes (restart mini-game with new pair count)
+  const [activeCards, setActiveCards] = useState<MemCard[]>([]);
+  useEffect(() => {
+    pairsRef.current = activePairs;
+    const flat = activePairs.flatMap((p) => [
+      { id:`${p.id}-a`, pairId:p.id, content:p.a, state:"hidden" as const },
+      { id:`${p.id}-b`, pairId:p.id, content:p.b, state:"hidden" as const },
+    ]);
+    for (let i = flat.length-1; i > 0; i--) {
+      const j = Math.floor(Math.random()*(i+1));
+      [flat[i],flat[j]] = [flat[j],flat[i]];
+    }
+    setActiveCards(flat);
+    setFlipped([]);
+    setMatched(0);
+    setLocked(false);
+    startRef.current = Date.now();
+  // activePairs changes only when isLandscape flips — acceptable restart
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLandscape]);
+
+  // Initialise on first render (useEffect fires after mount)
+  useEffect(() => {
+    if (activeCards.length === 0) {
+      const flat = activePairs.flatMap((p) => [
+        { id:`${p.id}-a`, pairId:p.id, content:p.a, state:"hidden" as const },
+        { id:`${p.id}-b`, pairId:p.id, content:p.b, state:"hidden" as const },
+      ]);
+      for (let i = flat.length-1; i > 0; i--) {
+        const j = Math.floor(Math.random()*(i+1));
+        [flat[i],flat[j]] = [flat[j],flat[i]];
+      }
+      setActiveCards(flat);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  void cards; // original cards state kept for compat; we use activeCards
 
   const flip = useCallback((id: string) => {
     if (locked) return;
-    setCards((cs) => {
+    setActiveCards((cs) => {
       const c = cs.find((x) => x.id === id);
       if (!c || c.state !== "hidden") return cs;
       return cs.map((x) => x.id===id ? { ...x, state:"revealed" } : x);
@@ -176,15 +230,16 @@ function Phase2Memory({ pairs, onDone }: { pairs: MemoryPair[]; onDone: (s: numb
 
   useEffect(() => {
     if (flipped.length < 2) return;
-    const [a,b] = flipped.map((id) => cards.find((c) => c.id===id)!);
+    const [a,b] = flipped.map((id) => activeCards.find((c) => c.id===id)!);
     if (!a||!b) return;
+    const totalPairs = pairsRef.current.length;
     if (a.pairId === b.pairId) {
-      setCards((cs) => cs.map((c) => c.id===a.id||c.id===b.id ? { ...c, state:"matched" } : c));
+      setActiveCards((cs) => cs.map((c) => c.id===a.id||c.id===b.id ? { ...c, state:"matched" } : c));
       setMatched((m) => {
         const next = m+1;
-        if (next === pairs.length) {
+        if (next === totalPairs) {
           const bonus = Math.max(0, Math.round(30-(Date.now()-startRef.current)/1000));
-          onDone(Math.min(100, Math.round((next/pairs.length)*70)+bonus));
+          onDone(Math.min(100, Math.round((next/totalPairs)*70)+bonus));
         }
         return next;
       });
@@ -192,7 +247,7 @@ function Phase2Memory({ pairs, onDone }: { pairs: MemoryPair[]; onDone: (s: numb
     } else {
       setLocked(true);
       setTimeout(() => {
-        setCards((cs) => cs.map((c) => flipped.includes(c.id)&&c.state==="revealed" ? { ...c, state:"hidden" } : c));
+        setActiveCards((cs) => cs.map((c) => flipped.includes(c.id)&&c.state==="revealed" ? { ...c, state:"hidden" } : c));
         setFlipped([]); setLocked(false);
       }, 900);
     }
@@ -200,18 +255,24 @@ function Phase2Memory({ pairs, onDone }: { pairs: MemoryPair[]; onDone: (s: numb
   }, [flipped]);
 
   const bg = (s: MemCard["state"]) => s==="matched"?"#16a34a":s==="revealed"?"#F0B429":"#1A6659";
+  const gridCols = isLandscape ? "grid-cols-3" : "grid-cols-4";
 
   return (
-    <div className="min-h-screen pt-16 px-4 pb-8 flex flex-col items-center justify-center"
+    <div className="min-h-[100dvh] pt-14 px-3 pb-4 flex flex-col items-center justify-center"
       style={{ background:"linear-gradient(160deg,#0E4A3D,#1A1A2E)" }}>
-      <p className="text-gold text-sm font-semibold uppercase tracking-widest mb-2">Memory Match</p>
-      <p className="text-white/50 text-xs mb-6">{matched}/{pairs.length} pairs found</p>
-      <div className="grid grid-cols-4 gap-2 w-full max-w-xs">
-        {cards.map((c) => (
+      <p className="text-gold text-sm font-semibold uppercase tracking-widest mb-1">Memory Match</p>
+      <p className="text-white/50 text-xs mb-4">{matched}/{activePairs.length} pairs found</p>
+      <div className={`grid ${gridCols} gap-2 w-full`} style={{ maxWidth: isLandscape ? "480px" : "360px" }}>
+        {activeCards.map((c) => (
           <button key={c.id} onClick={() => flip(c.id)}
             disabled={c.state!=="hidden"||locked}
             className="aspect-square rounded-xl flex items-center justify-center text-center p-1 transition-all duration-300 active:scale-95 disabled:cursor-default"
-            style={{ background:bg(c.state), boxShadow:c.state!=="hidden"?"0 4px 12px rgba(0,0,0,0.3)":"none" }}>
+            style={{
+              background: bg(c.state),
+              boxShadow: c.state!=="hidden"?"0 4px 12px rgba(0,0,0,0.3)":"none",
+              minHeight: "48px",
+              minWidth:  "48px",
+            }}>
             {c.state==="hidden"
               ? <span className="text-white/30 text-xl font-black">?</span>
               : <span className={`text-[10px] font-bold leading-tight text-center px-0.5 ${c.state==="matched"?"text-white":"text-text-dark"}`}>{c.content}</span>
@@ -219,8 +280,8 @@ function Phase2Memory({ pairs, onDone }: { pairs: MemoryPair[]; onDone: (s: numb
           </button>
         ))}
       </div>
-      <div className="flex gap-2 mt-6">
-        {pairs.map((_,i) => (
+      <div className="flex gap-2 mt-4">
+        {activePairs.map((_,i) => (
           <div key={i} className={`w-2 h-2 rounded-full ${i<matched?"bg-green-400":"bg-white/20"}`} />
         ))}
       </div>
@@ -255,7 +316,7 @@ function Phase3Sequence({ items, onDone }: { items: SeqItem[]; onDone: (s: numbe
   }
 
   return (
-    <div className="min-h-screen pt-16 px-4 pb-8 flex flex-col items-center"
+    <div className="min-h-[100dvh] pt-14 px-4 pb-6 flex flex-col items-center"
       style={{ background:"linear-gradient(160deg,#0E4A3D,#1A1A2E)" }}>
       <div className="w-full max-w-md pt-8">
         <p className="text-gold text-sm font-semibold uppercase tracking-widest text-center mb-2">Arrange in Order</p>
@@ -328,7 +389,7 @@ function Phase4FillGap({ questions, onDone }: { questions: FillGapQ[]; onDone: (
 
   const parts = q.sentence.split("___");
   return (
-    <div className="min-h-screen pt-16 px-4 pb-8 flex flex-col items-center justify-center"
+    <div className="min-h-[100dvh] pt-14 px-4 pb-6 flex flex-col items-center justify-center"
       style={{ background:"linear-gradient(160deg,#0E4A3D,#1A1A2E)" }}>
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-between mb-4">
@@ -408,7 +469,7 @@ function Phase5TrueFalse({ questions, onDone }: { questions: TrueFalseQ[]; onDon
   const isCorrect = answered!==null && answered===q.answer;
   const isWrong   = answered!==null && answered!==q.answer;
   return (
-    <div className="min-h-screen pt-16 px-4 pb-8 flex flex-col items-center justify-center"
+    <div className="min-h-[100dvh] pt-14 px-4 pb-6 flex flex-col items-center justify-center"
       style={{ background:"linear-gradient(160deg,#0E4A3D,#1A1A2E)" }}>
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-between mb-3">
@@ -438,15 +499,17 @@ function Phase5TrueFalse({ questions, onDone }: { questions: TrueFalseQ[]; onDon
         </div>
         <div className="grid grid-cols-2 gap-4">
           <button onClick={() => pick(true)} disabled={answered!==null}
-            className={`py-5 rounded-2xl font-black text-xl transition-all active:scale-95 ${
+            className={`rounded-2xl font-black text-xl transition-all active:scale-95 ${
               answered!==null&&q.answer===true?"bg-green-500 text-white":
               answered!==null&&answered===true?"bg-red-500 text-white":"bg-green-600/80 text-white hover:bg-green-600"
-            }`}>TRUE</button>
+            }`}
+            style={{ minHeight: "56px" }}>TRUE</button>
           <button onClick={() => pick(false)} disabled={answered!==null}
-            className={`py-5 rounded-2xl font-black text-xl transition-all active:scale-95 ${
+            className={`rounded-2xl font-black text-xl transition-all active:scale-95 ${
               answered!==null&&q.answer===false?"bg-green-500 text-white":
               answered!==null&&answered===false?"bg-red-500 text-white":"bg-red-600/80 text-white hover:bg-red-600"
-            }`}>FALSE</button>
+            }`}
+            style={{ minHeight: "56px" }}>FALSE</button>
         </div>
         <p className="text-center text-white/30 text-xs mt-5">{correct} correct so far</p>
       </div>
