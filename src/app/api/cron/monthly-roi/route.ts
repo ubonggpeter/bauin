@@ -17,6 +17,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { creditWallet, debitWallet } from "@/lib/server/wallet";
+import { alertAdmin } from "@/lib/server/cron-runner";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ export async function POST(req: Request) {
     }
   }
 
+  try {
   const now          = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
@@ -179,4 +181,8 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ ...summary, runAt: now.toISOString() });
+  } catch (err) {
+    alertAdmin("monthly-roi", err).catch(() => {});
+    return NextResponse.json({ error: "Job failed" }, { status: 500 });
+  }
 }

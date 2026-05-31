@@ -16,6 +16,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { debitWallet, creditWallet } from "@/lib/server/wallet";
 import { getAllSettings } from "@/lib/server/platform-settings";
+import { alertAdmin } from "@/lib/server/cron-runner";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
     }
   }
 
+  try {
   const now      = new Date();
   const settings = await getAllSettings();
   const feePct   = Math.max(0, Math.min(100, Number(settings["TOOL_POOL_FEE_PCT"] ?? "5")));
@@ -121,6 +123,10 @@ export async function POST(req: Request) {
     processed: pools.length,
     results,
   });
+  } catch (err) {
+    alertAdmin("pool-renewal", err).catch(() => {});
+    return NextResponse.json({ error: "Job failed" }, { status: 500 });
+  }
 }
 
 async function advanceRenewal(poolId: string, current: Date) {

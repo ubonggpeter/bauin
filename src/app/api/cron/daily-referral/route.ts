@@ -13,6 +13,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAllSettings } from "@/lib/server/platform-settings";
 import { creditWallet } from "@/lib/server/referral-earnings";
+import { alertAdmin } from "@/lib/server/cron-runner";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
     }
   }
 
+  try {
   const settings         = await getAllSettings();
   const dailyPct         = Math.max(0, Math.min(100, Number(settings["REFERRAL_WORKER_DAILY_PCT"]    ?? "10")));
   const expiryMonths     = Math.max(1,               Number(settings["REFERRAL_WORKER_EXPIRY_MONTHS"] ?? "6"));
@@ -111,4 +113,8 @@ export async function POST(req: Request) {
     skipped,
     total:     referrals.length,
   });
+  } catch (err) {
+    alertAdmin("daily-referral", err).catch(() => {});
+    return NextResponse.json({ error: "Job failed" }, { status: 500 });
+  }
 }

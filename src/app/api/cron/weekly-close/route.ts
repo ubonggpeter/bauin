@@ -5,20 +5,19 @@
  */
 import { NextResponse } from "next/server";
 import { closeWeeklyCompetition } from "@/lib/server/leaderboard";
+import { runWithRetries, isCronAuthorized } from "@/lib/server/cron-runner";
 
 export const dynamic = "force-dynamic";
 
-function authorized(req: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
-  return req.headers.get("Authorization") === `Bearer ${secret}`;
-}
-
 export async function POST(req: Request) {
-  if (!authorized(req)) {
+  if (!isCronAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  await closeWeeklyCompetition();
-  return NextResponse.json({ ok: true, message: "Weekly competition closed and prizes distributed." });
+  try {
+    const { attempts } = await runWithRetries("weekly-close", () => closeWeeklyCompetition());
+    return NextResponse.json({ ok: true, attempts, message: "Weekly competition closed and prizes distributed." });
+  } catch {
+    return NextResponse.json({ error: "Job failed after 3 retries" }, { status: 500 });
+  }
 }

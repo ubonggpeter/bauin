@@ -5,22 +5,20 @@
  */
 import { NextResponse } from "next/server";
 import { refreshLeaderboard } from "@/lib/server/leaderboard";
+import { runWithRetries, isCronAuthorized } from "@/lib/server/cron-runner";
 
 export const dynamic = "force-dynamic";
 
-function authorized(req: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return true; // dev mode: allow all
-  return req.headers.get("Authorization") === `Bearer ${secret}`;
-}
-
 export async function POST(req: Request) {
-  if (!authorized(req)) {
+  if (!isCronAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const start = Date.now();
-  await refreshLeaderboard();
-
-  return NextResponse.json({ ok: true, ms: Date.now() - start });
+  try {
+    const start         = Date.now();
+    const { attempts }  = await runWithRetries("leaderboard-refresh", () => refreshLeaderboard());
+    return NextResponse.json({ ok: true, ms: Date.now() - start, attempts });
+  } catch {
+    return NextResponse.json({ error: "Job failed after 3 retries" }, { status: 500 });
+  }
 }

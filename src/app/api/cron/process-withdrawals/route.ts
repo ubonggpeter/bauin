@@ -19,6 +19,7 @@ import { prisma } from "@/lib/db";
 import { creditWallet } from "@/lib/server/wallet";
 import { sendWithdrawalStatusEmail } from "@/lib/server/email";
 import { push } from "@/lib/server/push";
+import { alertAdmin } from "@/lib/server/cron-runner";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +120,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "PAYSTACK_SECRET_KEY not set" }, { status: 503 });
   }
 
+  try {
   const pending = await prisma.withdrawalRequest.findMany({
     where:   { status: "QUEUED" },
     include: {
@@ -236,6 +238,10 @@ export async function POST(req: Request) {
     processed: results.length,
     results,
   });
+  } catch (err) {
+    alertAdmin("process-withdrawals", err).catch(() => {});
+    return NextResponse.json({ error: "Job failed" }, { status: 500 });
+  }
 }
 
 // ── Reverse debit on failure ──────────────────────────────────────

@@ -139,3 +139,174 @@ export async function sendCertificationEmail(
     // non-critical
   }
 }
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://bauin.com";
+
+function emailHeader() {
+  return `
+    <div style="background:linear-gradient(135deg,#1A6659,#0E4A3D);padding:32px;text-align:center;border-radius:16px 16px 0 0;">
+      <h1 style="color:#F0B429;margin:0 0 4px;font-size:28px;letter-spacing:2px;">BAUIN</h1>
+      <p style="color:rgba(255,255,255,0.65);margin:0;font-size:12px;letter-spacing:1px;">BILLIONAIRES AI USERS INCOME NETWORK</p>
+    </div>
+  `;
+}
+
+export async function sendStreakBonusEmail(
+  to: string,
+  name: string,
+  streakDays: number,
+  bonus: number,
+): Promise<void> {
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) return;
+  sgMail.setApiKey(apiKey);
+  const fmt = `₦${bonus.toLocaleString()}`;
+  try {
+    await sgMail.send({
+      to,
+      from: process.env.EMAIL_FROM ?? "noreply@bauin.com",
+      subject: `🔥 ${streakDays}-day streak bonus — ${fmt} credited!`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#f5f7f6;padding:20px;">
+          ${emailHeader()}
+          <div style="background:white;padding:36px 32px;border-radius:0 0 16px 16px;border:1px solid #e0e0e0;border-top:none;">
+            <h2 style="color:#1A1A2E;margin-top:0;">🔥 ${streakDays}-Day Streak!</h2>
+            <p style="color:#555;font-size:15px;line-height:1.6;">
+              Incredible consistency, ${name}! You've logged in for <strong>${streakDays} days in a row</strong>
+              and earned a <strong style="color:#1A6659;">${fmt}</strong> streak bonus.
+            </p>
+            <div style="background:#f0faf7;border-left:4px solid #1A6659;padding:16px 20px;border-radius:0 8px 8px 0;margin:24px 0;">
+              <p style="margin:0;font-size:18px;font-weight:bold;color:#1A6659;">${fmt} added to your wallet</p>
+            </div>
+            <a href="${APP_URL}/dashboard/wallet" style="display:inline-block;background:#F0B429;color:#1A1A2E;font-weight:bold;padding:12px 28px;border-radius:999px;text-decoration:none;font-size:14px;margin-top:8px;">View Wallet →</a>
+          </div>
+        </div>
+      `,
+    });
+  } catch { /* non-critical */ }
+}
+
+export async function sendWeeklyDigestEmail(
+  to: string,
+  name: string,
+  weekStart: string,
+  weekEnd: string,
+  totals: { type: string; amount: number }[],
+  totalEarned: number,
+): Promise<void> {
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) return;
+  sgMail.setApiKey(apiKey);
+
+  const rows = totals
+    .filter((t) => t.amount > 0)
+    .map(
+      (t) => `
+        <tr>
+          <td style="padding:8px 12px;color:#555;font-size:14px;border-bottom:1px solid #f0f0f0;">${t.type.replace(/_/g, " ")}</td>
+          <td style="padding:8px 12px;color:#1A6659;font-size:14px;font-weight:bold;border-bottom:1px solid #f0f0f0;text-align:right;">₦${t.amount.toLocaleString()}</td>
+        </tr>
+      `,
+    )
+    .join("");
+
+  try {
+    await sgMail.send({
+      to,
+      from: process.env.EMAIL_FROM ?? "noreply@bauin.com",
+      subject: `Your BAUIN weekly summary — ₦${totalEarned.toLocaleString()} earned`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#f5f7f6;padding:20px;">
+          ${emailHeader()}
+          <div style="background:white;padding:36px 32px;border-radius:0 0 16px 16px;border:1px solid #e0e0e0;border-top:none;">
+            <h2 style="color:#1A1A2E;margin-top:0;">Weekly Earnings Summary</h2>
+            <p style="color:#888;font-size:13px;margin-top:-8px;">${weekStart} – ${weekEnd}</p>
+            <p style="color:#555;font-size:15px;">Hi ${name}, here's what you earned on BAUIN this week:</p>
+            ${rows ? `
+              <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+                <thead>
+                  <tr style="background:#f9f9f9;">
+                    <th style="padding:10px 12px;text-align:left;color:#888;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Source</th>
+                    <th style="padding:10px 12px;text-align:right;color:#888;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+                <tfoot>
+                  <tr style="background:#f0faf7;">
+                    <td style="padding:12px;font-weight:bold;color:#1A6659;">Total</td>
+                    <td style="padding:12px;font-weight:bold;color:#1A6659;text-align:right;">₦${totalEarned.toLocaleString()}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            ` : `<p style="color:#888;font-style:italic;">No earnings recorded this week — log in and get active!</p>`}
+            <a href="${APP_URL}/dashboard" style="display:inline-block;background:#1A6659;color:white;font-weight:bold;padding:12px 28px;border-radius:999px;text-decoration:none;font-size:14px;margin-top:8px;">Go to Dashboard →</a>
+          </div>
+        </div>
+      `,
+    });
+  } catch { /* non-critical */ }
+}
+
+export async function sendSubscriptionExpiryEmail(
+  to: string,
+  name: string,
+  categoryName: string,
+): Promise<void> {
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) return;
+  sgMail.setApiKey(apiKey);
+  try {
+    await sgMail.send({
+      to,
+      from: process.env.EMAIL_FROM ?? "noreply@bauin.com",
+      subject: `Your ${categoryName} subscription has expired`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#f5f7f6;padding:20px;">
+          ${emailHeader()}
+          <div style="background:white;padding:36px 32px;border-radius:0 0 16px 16px;border:1px solid #e0e0e0;border-top:none;">
+            <h2 style="color:#1A1A2E;margin-top:0;">Subscription Expired</h2>
+            <p style="color:#555;font-size:15px;line-height:1.6;">
+              Hi ${name}, your <strong>${categoryName}</strong> subscription has expired.
+              Renew to continue accessing quizzes, certifications, and income opportunities in this category.
+            </p>
+            <a href="${APP_URL}/dashboard" style="display:inline-block;background:#F0B429;color:#1A1A2E;font-weight:bold;padding:12px 28px;border-radius:999px;text-decoration:none;font-size:14px;margin-top:8px;">Renew Subscription →</a>
+          </div>
+        </div>
+      `,
+    });
+  } catch { /* non-critical */ }
+}
+
+export async function sendReferralExpiryEmail(
+  to: string,
+  name: string,
+  referredName: string,
+  expiryMonths: number,
+): Promise<void> {
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) return;
+  sgMail.setApiKey(apiKey);
+  try {
+    await sgMail.send({
+      to,
+      from: process.env.EMAIL_FROM ?? "noreply@bauin.com",
+      subject: `Your referral bonus for ${referredName} has expired`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#f5f7f6;padding:20px;">
+          ${emailHeader()}
+          <div style="background:white;padding:36px 32px;border-radius:0 0 16px 16px;border:1px solid #e0e0e0;border-top:none;">
+            <h2 style="color:#1A1A2E;margin-top:0;">Referral Bonus Ended</h2>
+            <p style="color:#555;font-size:15px;line-height:1.6;">
+              Hi ${name}, your ${expiryMonths}-month referral bonus window for <strong>${referredName}</strong>
+              has ended. You will no longer earn daily bonuses from their activity.
+            </p>
+            <p style="color:#555;font-size:15px;line-height:1.6;">
+              Share your referral link to add new members and keep earning 10% lifetime bonuses.
+            </p>
+            <a href="${APP_URL}/dashboard/network" style="display:inline-block;background:#1A6659;color:white;font-weight:bold;padding:12px 28px;border-radius:999px;text-decoration:none;font-size:14px;margin-top:8px;">Share Referral Link →</a>
+          </div>
+        </div>
+      `,
+    });
+  } catch { /* non-critical */ }
+}

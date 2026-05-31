@@ -109,11 +109,19 @@ export async function POST(
   _req: Request,
   { params }: { params: { sessionId: string } }
 ) {
-  const authSession = await getServerSession(authOptions);
-  if (!authSession?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // CRON_SECRET bypass for quiz-auto-close cron job
+  const cronSecret = process.env.CRON_SECRET;
+  const isCron     = cronSecret &&
+    (_req.headers.get("Authorization") ?? "") === `Bearer ${cronSecret}`;
+
+  let callerId: string | null = null;
+  if (!isCron) {
+    const authSession = await getServerSession(authOptions);
+    if (!authSession?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    callerId = authSession.user.id;
   }
-  const callerId = authSession.user.id;
   const { sessionId } = params;
 
   // ── Load session ──────────────────────────────────────────────
@@ -138,9 +146,9 @@ export async function POST(
     return NextResponse.json({ error: "Session already closed" }, { status: 409 });
   }
 
-  // ── Auth: caller must be collection owner ─────────────────────
+  // ── Auth: caller must be collection owner (or cron) ──────────
   const ownerId = quizSession.distributorCollection?.userId;
-  if (ownerId !== callerId) {
+  if (!isCron && ownerId !== callerId) {
     return NextResponse.json({ error: "Forbidden — only the collection owner can close a session" }, { status: 403 });
   }
 
