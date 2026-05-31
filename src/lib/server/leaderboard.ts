@@ -6,10 +6,12 @@
 import { prisma } from "@/lib/db";
 import { cacheGet, cacheSet, cacheDel } from "@/lib/redis";
 import { creditWallet, makeRef } from "@/lib/server/wallet";
+import { push } from "@/lib/server/push";
 
-const LB_KEY      = "leaderboard:weekly";
-const LB_META_KEY = "leaderboard:weekly:meta";
-const LB_TTL      = 3600; // 1 hour
+const LB_KEY          = "leaderboard:weekly";
+const LB_META_KEY     = "leaderboard:weekly:meta";
+const LB_PREV_TOP10   = "leaderboard:weekly:prev-top10";
+const LB_TTL          = 3600; // 1 hour
 
 export type LbEntry = {
   rank:      number;
@@ -46,6 +48,12 @@ export function secondsUntilReset(): number {
 // ── Refresh leaderboard from DB ───────────────────────────────────────────────
 
 export async function refreshLeaderboard(): Promise<void> {
+  // Snapshot previous top-10 user IDs before overwriting
+  const prevRaw    = await cacheGet(LB_META_KEY);
+  const prevTop10  = prevRaw
+    ? (JSON.parse(prevRaw) as LbEntry[]).slice(0, 10).map((e) => e.userId)
+    : [];
+
   const since = weekStart();
 
   // Aggregate total quiz score per user for sessions that ended this week
@@ -85,6 +93,18 @@ export async function refreshLeaderboard(): Promise<void> {
   });
 
   await cacheSet(LB_META_KEY, JSON.stringify(entries), LB_TTL);
+
+  // Notify users who newly entered the top 10
+  const newTop10 = entries.slice(0, 10);
+  const prevSet  = new Set(prevTop10);
+  for (const entry of newTop10) {
+    if (!prevSet.has(entry.userId)) {
+      push.leaderboardTop10(entry.userId, entry.rank).catch(() => {});
+    }
+  }
+
+  // Persist the current top-10 IDs for the next diff
+  await cacheSet(LB_PREV_TOP10, JSON.stringify(newTop10.map((e) => e.userId)), LB_TTL * 2);
 }
 
 // ── Read leaderboard (cache-first) ────────────────────────────────────────────
@@ -174,4 +194,5 @@ export async function closeWeeklyCompetition(): Promise<void> {
   // Clear Redis so next week starts fresh
   await cacheDel(LB_META_KEY);
   await cacheDel(LB_KEY);
+  await cacheDel(LB_PREV_TOP10);
 }

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { getCategoryConfig } from "@/lib/server/settings";
 import { generateAndUploadCertificate } from "@/lib/server/certificates";
 import { checkAchievements } from "@/lib/server/achievements";
+import { push } from "@/lib/server/push";
 import { sendCertificationEmail } from "@/lib/server/email";
 
 export const dynamic = "force-dynamic";
@@ -113,6 +114,9 @@ export async function POST(req: Request) {
       sendCertificationEmail(user.email, user.name, category.name, scorePct, certificateUrl).catch(() => {});
     }
     checkAchievements(userId, { type: "TEST_PASSED", score: scorePct, durationSec }).catch(() => {});
+    if (category) {
+      push.certPassed(userId, category.name, scorePct).catch(() => {});
+    }
 
     return NextResponse.json({
       passed: true,

@@ -12,6 +12,7 @@
  */
 import type { Prisma } from "@prisma/client";
 import { sendReferralUnlockedEmail } from "@/lib/server/email";
+import { push } from "@/lib/server/push";
 
 type Tx = Prisma.TransactionClient;
 type Settings = Record<string, string>;
@@ -109,6 +110,8 @@ export async function onPaymentReferralCredit(
       description: `${paymentPct}% of ₦${amountPaid.toLocaleString()} — ${source}`,
     },
   });
+
+  push.referralEarned(referral.referrerId, bonus).catch(() => {});
 }
 
 // ── VIEWER: on quiz entry ─────────────────────────────────────────
@@ -203,13 +206,13 @@ export async function unlockViewerEarnings(
     select: { email: true, name: true },
   });
   if (referrerUser?.email) {
-    // Schedule email after the tx resolves (fire-and-forget via setImmediate)
     setImmediate(() => {
       sendReferralUnlockedEmail(
         referrerUser.email!,
         referrerUser.name ?? "User",
         total,
       ).catch(() => {});
+      push.referralEarned(referral.referrerId, total).catch(() => {});
     });
   }
 }

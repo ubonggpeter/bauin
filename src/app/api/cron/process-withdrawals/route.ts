@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { creditWallet } from "@/lib/server/wallet";
 import { sendWithdrawalStatusEmail } from "@/lib/server/email";
+import { push } from "@/lib/server/push";
 
 export const dynamic = "force-dynamic";
 
@@ -172,6 +173,7 @@ export async function POST(req: Request) {
         "Could not create Paystack transfer recipient. Funds returned to wallet.");
       await sendWithdrawalStatusEmail(userEmail, userName, amount, "FAILED",
         "Payment gateway could not verify your account details.");
+      push.withdrawalProcessed(wr.userId, amount, "FAILED").catch(() => {});
       results.push({ id: wr.id, status: "FAILED", error: "recipient creation failed" });
       continue;
     }
@@ -201,6 +203,7 @@ export async function POST(req: Request) {
         "Paystack transfer failed. Funds returned to wallet.");
       await sendWithdrawalStatusEmail(userEmail, userName, amount, "FAILED",
         "Transfer could not be completed. Please try again.");
+      push.withdrawalProcessed(wr.userId, amount, "FAILED").catch(() => {});
       results.push({ id: wr.id, status: "FAILED", error: "transfer initiation failed" });
       continue;
     }
@@ -223,6 +226,7 @@ export async function POST(req: Request) {
         data:  { status: "COMPLETED" },
       });
       await sendWithdrawalStatusEmail(userEmail, userName, amount, "COMPLETED");
+      push.withdrawalProcessed(wr.userId, amount, "COMPLETED").catch(() => {});
     }
 
     results.push({ id: wr.id, status: finalStatus });

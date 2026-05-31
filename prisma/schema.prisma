@@ -214,6 +214,7 @@ model User {
   auditLogs              AuditLog[]       @relation("AuditLogAdmin")
   withdrawalRequests     WithdrawalRequest[]
   scriptGenerations      ScriptGeneration[]
+  pushSubscriptions      PushSubscription[]
 
   @@index([referredById])
   @@index([referralCode])
@@ -967,4 +968,22 @@ model ScriptGeneration {
   @@index([userId])
   @@index([userId, createdAt])
   @@map("script_generations")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║          PUSH SUBSCRIPTIONS                  ║
+// ╚══════════════════════════════════════════════╝
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String   @db.Text @map("p256dh")
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }

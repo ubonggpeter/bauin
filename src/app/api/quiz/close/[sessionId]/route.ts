@@ -19,6 +19,7 @@ import { prisma } from "@/lib/db";
 import { getAllSettings } from "@/lib/server/platform-settings";
 import { invalidateCachedSession, invalidateCachedLeaderboard } from "@/lib/server/quiz-cache";
 import { checkAchievements, checkEarningsMilestones } from "@/lib/server/achievements";
+import { push } from "@/lib/server/push";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -292,9 +293,10 @@ export async function POST(
 
   // ── Achievements (fire-and-forget) ────────────────────────────
   for (let i = 0; i < Math.min(3, summary.winnerCredits.length); i++) {
-    const { userId: wId, rank } = summary.winnerCredits[i];
+    const { userId: wId, rank, amount: prize } = summary.winnerCredits[i];
     checkAchievements(wId, { type: "QUIZ_WON", rank }).catch(() => {});
     checkEarningsMilestones(wId).catch(() => {});
+    push.quizWin(wId, rank, prize).catch(() => {});
   }
 
   return NextResponse.json({
