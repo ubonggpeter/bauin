@@ -30,6 +30,14 @@ type QuizQ = {
   correct: "A" | "B" | "C" | "D";
 };
 
+type CollabDraft = {
+  userId:         string;
+  name:           string;
+  email:          string; // masked
+  role:           string;
+  revenueSharePct: number;
+};
+
 type Draft = {
   title: string;
   niche: string;
@@ -43,6 +51,7 @@ type Draft = {
   price: string;
   royaltyEnabled: boolean;
   royaltyPct: number;
+  collaborators: CollabDraft[];
 };
 
 type SubmitResult = {
@@ -62,6 +71,7 @@ const STEPS = [
   { label: "Episodes" },
   { label: "Quiz" },
   { label: "Pricing" },
+  { label: "Collaborators" },
   { label: "Review" },
 ];
 
@@ -90,6 +100,7 @@ const INITIAL: Draft = {
   price: "1500",
   royaltyEnabled: false,
   royaltyPct: 15,
+  collaborators: [],
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -788,7 +799,209 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Step5Review({ draft }: { draft: Draft }) {
+// ─────────────────────────────────────────────────────────────────
+// Step 5 — Invite Collaborators
+// ─────────────────────────────────────────────────────────────────
+
+const COLLAB_ROLES = ["CO-WRITER", "EDITOR", "NARRATOR", "ILLUSTRATOR", "PRODUCER"];
+
+function Step5Collaborators({
+  draft,
+  update,
+}: {
+  draft: Draft;
+  update: (patch: Partial<Draft>) => void;
+}) {
+  type UserResult = { id: string; name: string; email: string };
+
+  const [query, setQuery]   = useState("");
+  const [results, setResults] = useState<UserResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+
+  const totalShare = draft.collaborators.reduce((s, c) => s + c.revenueSharePct, 0);
+
+  async function search(q: string) {
+    setQuery(q);
+    if (q.trim().length < 2) { setResults([]); return; }
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/users/search?q=${encodeURIComponent(q.trim())}`);
+      const data = await res.json();
+      setResults(
+        (data.users ?? []).filter(
+          (u: UserResult) => !draft.collaborators.some((c) => c.userId === u.id)
+        )
+      );
+    } catch { /* silently ignore */ }
+    setSearching(false);
+  }
+
+  function addCollab(user: UserResult) {
+    if (draft.collaborators.some((c) => c.userId === user.id)) return;
+    update({
+      collaborators: [
+        ...draft.collaborators,
+        { userId: user.id, name: user.name, email: user.email, role: "CO-WRITER", revenueSharePct: 10 },
+      ],
+    });
+    setQuery("");
+    setResults([]);
+    setShareError(null);
+  }
+
+  function removeCollab(userId: string) {
+    update({ collaborators: draft.collaborators.filter((c) => c.userId !== userId) });
+    setShareError(null);
+  }
+
+  function updateCollab(userId: string, patch: Partial<CollabDraft>) {
+    const updated = draft.collaborators.map((c) => c.userId === userId ? { ...c, ...patch } : c);
+    const newTotal = updated.reduce((s, c) => s + c.revenueSharePct, 0);
+    setShareError(newTotal >= 100 ? "Total collaborator share must be less than 100% (author keeps the rest)" : null);
+    update({ collaborators: updated });
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Explainer */}
+      <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4">
+        <p className="text-sm font-semibold text-primary mb-1">How revenue sharing works</p>
+        <p className="text-xs text-gray-500 leading-relaxed">
+          Add co-creators and set each person's percentage of the net sale price (after platform fees).
+          You keep the remainder. Changes apply to every future sale.
+        </p>
+      </div>
+
+      {/* Search */}
+      <div>
+        <label className="block text-sm font-semibold text-text-dark mb-2">Search by name</label>
+        <div className="relative">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => search(e.target.value)}
+            placeholder="Type a collaborator's name…"
+            className="w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary pr-10"
+          />
+          {searching && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
+
+        {/* Dropdown results */}
+        {results.length > 0 && (
+          <div className="border border-border rounded-xl mt-1 overflow-hidden shadow-lg bg-white z-10 relative">
+            {results.map((u) => (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() => addCollab(u)}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-bg-light transition-colors text-left border-b border-border last:border-0"
+              >
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
+                  {u.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-text-dark truncate">{u.name}</p>
+                  <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                </div>
+                <span className="ml-auto text-xs text-primary font-semibold">Add</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Added collaborators */}
+      {draft.collaborators.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-text-dark">
+              Collaborators ({draft.collaborators.length})
+            </p>
+            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+              totalShare >= 100 ? "bg-red-50 text-red-600" : "bg-primary/8 text-primary"
+            }`}>
+              Your share: {Math.max(0, 100 - totalShare).toFixed(0)}%
+            </span>
+          </div>
+
+          {draft.collaborators.map((collab) => (
+            <div key={collab.userId} className="border border-border rounded-2xl p-4 flex flex-col gap-3 bg-white">
+              {/* User info */}
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
+                  {collab.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-text-dark truncate">{collab.name}</p>
+                  <p className="text-xs text-gray-400 truncate">{collab.email}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeCollab(collab.userId)}
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors flex-shrink-0"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Role + share row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">Role</label>
+                  <select
+                    value={collab.role}
+                    onChange={(e) => updateCollab(collab.userId, { role: e.target.value })}
+                    className="w-full border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white"
+                  >
+                    {COLLAB_ROLES.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">Revenue share</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min={1}
+                      max={99}
+                      value={collab.revenueSharePct}
+                      onChange={(e) => {
+                        const v = Math.max(1, Math.min(99, Number(e.target.value) || 1));
+                        updateCollab(collab.userId, { revenueSharePct: v });
+                      }}
+                      className="w-full border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary pr-8"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium">%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {shareError && (
+            <p className="text-xs text-red-500 bg-red-50 rounded-xl px-4 py-2.5">{shareError}</p>
+          )}
+        </div>
+      )}
+
+      {draft.collaborators.length === 0 && (
+        <p className="text-sm text-gray-400 text-center py-4">
+          No collaborators added — you keep 100% of net sales.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Step6Review({ draft }: { draft: Draft }) {
   const completedEps = draft.episodes.filter((e) => e.uploaded).length;
   const validQs = draft.quiz.filter((q) => q.text && q.A && q.B && q.C && q.D).length;
 
@@ -1025,6 +1238,10 @@ function validateStep(step: number, draft: Draft): string | null {
   if (step === 3) {
     if (!draft.isFree && (Number(draft.price) < 100)) return "Price must be at least ₦100.";
   }
+  if (step === 4) {
+    const total = draft.collaborators.reduce((s, c) => s + c.revenueSharePct, 0);
+    if (total >= 100) return "Collaborator shares must leave at least 1% for the author.";
+  }
   return null;
 }
 
@@ -1080,6 +1297,11 @@ export default function CreateStoryPage() {
           price: Number(draft.price) || 0,
           royaltyEnabled: draft.royaltyEnabled,
           royaltyPct: draft.royaltyPct,
+          collaborators: draft.collaborators.map((c) => ({
+            userId: c.userId,
+            role: c.role,
+            revenueSharePct: c.revenueSharePct,
+          })),
           episodes: draft.episodes.map((e) => ({
             title: e.title,
             description: e.description,
@@ -1116,7 +1338,8 @@ export default function CreateStoryPage() {
     <Step2Episodes key={1} draft={draft} update={update} />,
     <Step3Quiz key={2} draft={draft} update={update} />,
     <Step4Pricing key={3} draft={draft} update={update} />,
-    <Step5Review key={4} draft={draft} />,
+    <Step5Collaborators key={4} draft={draft} update={update} />,
+    <Step6Review key={5} draft={draft} />,
   ];
 
   return (

@@ -252,6 +252,7 @@ model User {
   assignedSupportTickets SupportTicket[]   @relation("TicketAssignee")
   storyBundles           StoryBundle[]
   bundlePurchases        BundlePurchase[]
+  storyCollaborations    StoryCollaborator[] @relation("StoryCollaborations")
 
   @@index([referredById])
   @@index([referralCode])
@@ -493,25 +494,44 @@ model UserAchievement {
 // ╚══════════════════════════════════════════════╝
 
 model Story {
-  id          String   @id @default(cuid())
-  title       String
-  description String?  @db.Text
-  coverUrl    String?  @map("cover_url")
-  authorId    String?  @map("author_id")
-  isPublished Boolean  @default(false) @map("is_published")
-  isFree      Boolean  @default(false) @map("is_free")
-  price       Decimal  @default(0) @db.Decimal(18, 2)
-  niche       String?
-  tags        String[]
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(cuid())
+  title          String
+  description    String?  @db.Text
+  coverUrl       String?  @map("cover_url")
+  authorId       String?  @map("author_id")
+  isPublished    Boolean  @default(false) @map("is_published")
+  isFree         Boolean  @default(false) @map("is_free")
+  price          Decimal  @default(0) @db.Decimal(18, 2)
+  niche          String?
+  tags           String[]
+  royaltyEnabled Boolean  @default(false) @map("royalty_enabled")
+  royaltyPct     Decimal  @default(0) @db.Decimal(5, 2) @map("royalty_pct")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  episodes    Episode[]
-  purchases   StoryPurchase[]
-  bundleItems StoryBundleItem[]
+  episodes      Episode[]
+  purchases     StoryPurchase[]
+  bundleItems   StoryBundleItem[]
+  collaborators StoryCollaborator[]
 
   @@index([niche])
   @@map("stories")
+}
+
+model StoryCollaborator {
+  id              String   @id @default(cuid())
+  storyId         String   @map("story_id")
+  collaboratorId  String   @map("collaborator_id")
+  role            String   @default("CO-WRITER")
+  revenueSharePct Decimal  @default(0) @db.Decimal(5, 2) @map("revenue_share_pct")
+  invitedAt       DateTime @default(now()) @map("invited_at")
+
+  story        Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  collaborator User  @relation("StoryCollaborations", fields: [collaboratorId], references: [id])
+
+  @@unique([storyId, collaboratorId])
+  @@index([collaboratorId])
+  @@map("story_collaborators")
 }
 
 // game_content_json shape:

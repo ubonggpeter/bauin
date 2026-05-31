@@ -1,6 +1,7 @@
 /**
  * GET /api/seller/stories
- * Returns the authenticated seller's own published stories for bundle creation.
+ * Returns stories the authenticated user authored OR collaborates on.
+ * Used by the bundle picker and the seller dashboard.
  */
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -17,11 +18,41 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const uid = session.user.id;
+
   const stories = await prisma.story.findMany({
-    where:   { authorId: session.user.id, isPublished: true },
+    where: {
+      isPublished: true,
+      OR: [
+        { authorId: uid },
+        { collaborators: { some: { collaboratorId: uid } } },
+      ],
+    },
     orderBy: { createdAt: "desc" },
-    select:  { id: true, title: true, coverUrl: true, price: true },
+    select: {
+      id:       true,
+      title:    true,
+      coverUrl: true,
+      price:    true,
+      authorId: true,
+      collaborators: {
+        where:  { collaboratorId: uid },
+        select: { revenueSharePct: true, role: true },
+      },
+    },
   });
 
-  return NextResponse.json({ stories: stories.map((s) => ({ ...s, price: Number(s.price) })) });
+  return NextResponse.json({
+    stories: stories.map((s) => ({
+      id:            s.id,
+      title:         s.title,
+      coverUrl:      s.coverUrl,
+      price:         Number(s.price),
+      isAuthor:      s.authorId === uid,
+      mySharePct:    s.authorId === uid
+        ? null // author's share is the remainder — computed at payout time
+        : Number(s.collaborators[0]?.revenueSharePct ?? 0),
+      myRole:        s.authorId === uid ? "AUTHOR" : (s.collaborators[0]?.role ?? "CO-WRITER"),
+    })),
+  });
 }

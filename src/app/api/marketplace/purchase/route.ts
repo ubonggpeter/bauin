@@ -90,8 +90,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "storyId and paystackReference are required" }, { status: 400 });
   }
 
-  // ── Load story ───────────────────────────────────────────────
-  const story = await prisma.story.findUnique({ where: { id: storyId, isPublished: true } });
+  // ── Load story + collaborators ──────────────────────────────
+  const story = await prisma.story.findUnique({
+    where:   { id: storyId, isPublished: true },
+    include: { collaborators: { select: { collaboratorId: true, revenueSharePct: true, role: true } } },
+  });
   if (!story) {
     return NextResponse.json({ error: "Story not found" }, { status: 404 });
   }
@@ -168,39 +171,75 @@ export async function POST(req: Request) {
       },
     });
 
-    // 3. Credit seller (if not free and seller exists)
-    if (!story.isFree && story.authorId && sellerNet > 0) {
-      const sellerWallet = await tx.wallet.upsert({
-        where:  { userId: story.authorId },
-        create: { userId: story.authorId, balance: 0, totalDeposited: 0, totalWithdrawn: 0, totalEarned: 0 },
-        update: {},
-      });
+    // 3. Split sellerNet among author + collaborators
+    if (!story.isFree && sellerNet > 0) {
+      // Calculate each collaborator's absolute share
+      const collabs = story.collaborators ?? [];
+      const totalCollabPct = collabs.reduce((s, c) => s + Number(c.revenueSharePct), 0);
+      const authorPct = Math.max(0, 100 - totalCollabPct);
 
-      const sellerBefore = Number(sellerWallet.balance);
-      await tx.wallet.update({
-        where: { userId: story.authorId },
-        data:  { balance: { increment: sellerNet }, totalEarned: { increment: sellerNet } },
-      });
-      await tx.transaction.create({
-        data: {
-          walletId:      sellerWallet.id,
-          userId:        story.authorId,
-          type:          "STORY_PURCHASE",
-          amount:        sellerNet,
-          balanceBefore: sellerBefore,
-          balanceAfter:  sellerBefore + sellerNet,
-          description:   `Story sale: "${story.title}" — net after ${commissionPct}% platform fee${referralFee > 0 ? ` + ${royaltyPct}% referral` : ""}`,
-          reference:     `STORY-SALE-${purchase.id}`,
-          status:        "COMPLETED",
-          metadata: {
-            storyId,
-            buyerId:      userId,
-            storyPrice,
-            commissionPct,
-            referralPct:  referralFee > 0 ? royaltyPct : 0,
+      // Author's cut (gets the rounding remainder so total stays exact)
+      let remaining = sellerNet;
+
+      for (const collab of collabs) {
+        const share = Math.round(sellerNet * Number(collab.revenueSharePct) / 100);
+        if (share <= 0) continue;
+        remaining -= share;
+
+        const cWallet = await tx.wallet.upsert({
+          where:  { userId: collab.collaboratorId },
+          create: { userId: collab.collaboratorId, balance: 0, totalDeposited: 0, totalWithdrawn: 0, totalEarned: 0 },
+          update: {},
+        });
+        const cBefore = Number(cWallet.balance);
+        await tx.wallet.update({
+          where: { userId: collab.collaboratorId },
+          data:  { balance: { increment: share }, totalEarned: { increment: share } },
+        });
+        await tx.transaction.create({
+          data: {
+            walletId:      cWallet.id,
+            userId:        collab.collaboratorId,
+            type:          "STORY_PURCHASE",
+            amount:        share,
+            balanceBefore: cBefore,
+            balanceAfter:  cBefore + share,
+            description:   `Collaborator share (${Number(collab.revenueSharePct)}% · ${collab.role}): "${story.title}"`,
+            reference:     `STORY-COLLAB-${purchase.id}-${collab.collaboratorId.slice(-6)}`,
+            status:        "COMPLETED",
+            metadata: { storyId, buyerId: userId, storyPrice, collaboratorPct: Number(collab.revenueSharePct), role: collab.role },
           },
-        },
-      });
+        });
+      }
+
+      // Author receives the remainder
+      const authorAmount = remaining;
+      if (story.authorId && authorAmount > 0) {
+        const sellerWallet = await tx.wallet.upsert({
+          where:  { userId: story.authorId },
+          create: { userId: story.authorId, balance: 0, totalDeposited: 0, totalWithdrawn: 0, totalEarned: 0 },
+          update: {},
+        });
+        const sellerBefore = Number(sellerWallet.balance);
+        await tx.wallet.update({
+          where: { userId: story.authorId },
+          data:  { balance: { increment: authorAmount }, totalEarned: { increment: authorAmount } },
+        });
+        await tx.transaction.create({
+          data: {
+            walletId:      sellerWallet.id,
+            userId:        story.authorId,
+            type:          "STORY_PURCHASE",
+            amount:        authorAmount,
+            balanceBefore: sellerBefore,
+            balanceAfter:  sellerBefore + authorAmount,
+            description:   `Story sale: "${story.title}" — ${authorPct.toFixed(0)}% author share (net after ${commissionPct}% platform fee${referralFee > 0 ? ` + ${royaltyPct}% referral` : ""})`,
+            reference:     `STORY-SALE-${purchase.id}`,
+            status:        "COMPLETED",
+            metadata: { storyId, buyerId: userId, storyPrice, commissionPct, authorPct, referralPct: referralFee > 0 ? royaltyPct : 0 },
+          },
+        });
+      }
     }
 
     // 4. Credit referrer (if applicable)
