@@ -18,6 +18,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getAllSettings } from "@/lib/server/platform-settings";
 import { invalidateCachedSession, invalidateCachedLeaderboard } from "@/lib/server/quiz-cache";
+import { checkAchievements, checkEarningsMilestones } from "@/lib/server/achievements";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -288,6 +289,13 @@ export async function POST(
   // ── Invalidate caches ─────────────────────────────────────────
   await invalidateCachedSession(quizSession.distributorCollection?.publicLinkCode ?? "");
   await invalidateCachedLeaderboard(sessionId);
+
+  // ── Achievements (fire-and-forget) ────────────────────────────
+  for (let i = 0; i < Math.min(3, summary.winnerCredits.length); i++) {
+    const { userId: wId, rank } = summary.winnerCredits[i];
+    checkAchievements(wId, { type: "QUIZ_WON", rank }).catch(() => {});
+    checkEarningsMilestones(wId).catch(() => {});
+  }
 
   return NextResponse.json({
     sessionId,

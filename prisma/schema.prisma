@@ -71,6 +71,8 @@ enum TransactionType {
   BET_STAKE
   BET_PAYOUT
   TOOL_POOL_FEE
+  ACHIEVEMENT_BONUS
+  LEADERBOARD_PRIZE
   ADJUSTMENT
 }
 
@@ -183,10 +185,12 @@ model User {
   resetTokenExpiry   DateTime? @map("reset_token_expiry")
   twoFactorSecret    String?   @map("two_factor_secret")
   twoFactorEnabled   Boolean   @default(false) @map("two_factor_enabled")
-  isActive           Boolean   @default(true) @map("is_active")
-  lastLoginAt        DateTime? @map("last_login_at")
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
+  isActive             Boolean   @default(true) @map("is_active")
+  lastLoginAt          DateTime? @map("last_login_at")
+  loginStreak          Int       @default(0) @map("login_streak")
+  loginStreakUpdatedAt DateTime? @map("login_streak_updated_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
 
   wallet                 Wallet?
   userCategories         UserCategory[]
@@ -918,4 +922,24 @@ model Notification {
   @@index([userId, isRead])
   @@index([userId, createdAt(sort: Desc)])
   @@map("notifications")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║          WEEKLY COMPETITIONS                 ║
+// ╚══════════════════════════════════════════════╝
+
+// winners: [{ userId, name, rank, score, prize }]
+model WeeklyCompetition {
+  id        String    @id @default(cuid())
+  weekStart DateTime  @map("week_start")
+  weekEnd   DateTime  @map("week_end")
+  status    String    @default("ACTIVE") // ACTIVE | CLOSED
+  prizePool Decimal   @default(0) @db.Decimal(18, 2) @map("prize_pool")
+  winners   Json?
+  closedAt  DateTime? @map("closed_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([status])
+  @@index([weekStart])
+  @@map("weekly_competitions")
 }

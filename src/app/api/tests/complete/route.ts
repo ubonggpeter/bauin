@@ -104,7 +104,7 @@ export async function POST(req: Request) {
     if (user && category) {
       sendCertificationEmail(user.email, user.name, category.name, scorePct, certificateUrl).catch(() => {});
     }
-    checkAchievements(userId, { score: scorePct, durationSec }).catch(() => {});
+    checkAchievements(userId, { type: "TEST_PASSED", score: scorePct, durationSec }).catch(() => {});
 
     return NextResponse.json({
       passed: true,
