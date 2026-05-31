@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -47,7 +48,7 @@ export default function InstallBanner() {
         className="mx-auto max-w-md rounded-2xl shadow-xl flex items-center gap-3 px-4 py-3"
         style={{ background: "#1A6659", color: "#fff" }}
       >
-        <img src="/icons/icon-192.png" alt="BAUIN" className="w-10 h-10 rounded-xl flex-shrink-0" />
+        <Image src="/icons/icon-192.png" alt="BAUIN" width={40} height={40} className="rounded-xl flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm leading-tight">Add BAUIN to your home screen</p>
           <p className="text-xs opacity-75 mt-0.5">Faster access, works offline</p>

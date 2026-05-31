@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 
 interface StoryOption {
   id:       string;
@@ -35,7 +36,7 @@ function CoverStack({ stories }: { stories: StoryOption[] }) {
           style={{ left: i * 12, zIndex: shown.length - i }}
         >
           {s.coverUrl ? (
-            <img src={s.coverUrl} alt={s.title} className="w-full h-full object-cover" />
+            <Image src={s.coverUrl} alt={s.title} fill className="object-cover" sizes="48px" />
           ) : (
             <div className="w-full h-full bg-gradient-to-b from-primary to-primary-dark flex items-center justify-center">
               <span className="text-white text-lg">📚</span>

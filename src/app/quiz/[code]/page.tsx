@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { usePaystackPayment } from "react-paystack";
+import Image from "next/image";
 
 // ── Types ──────────────────────────────────────────────────────────
 type Player = { id: string; userId: string; name: string };
@@ -572,6 +573,7 @@ export default function QuizLobbyPage() {
           <div className="relative px-6 pt-8 pb-6"
             style={{ background: `linear-gradient(135deg,${accent} 0%,${accent}cc 100%)` }}>
             {/* Logo */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             {info?.collection.logoUrl && (
               <img src={info.collection.logoUrl} alt="logo" className="h-8 mb-3 object-contain" />
             )}

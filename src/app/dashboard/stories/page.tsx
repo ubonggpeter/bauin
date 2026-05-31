@@ -1,6 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 
 const NICHES = ["All", "Business", "AI & Tech", "Finance", "Romance", "Self-Help", "Crypto", "Mystery"];
 
@@ -23,7 +26,7 @@ function BundleCoverStack({ stories }: { stories: BundleStory[] }) {
           style={{ left: i * 14, zIndex: shown.length - i }}
         >
           {s.coverUrl ? (
-            <img src={s.coverUrl} alt={s.title} className="w-full h-full object-cover" />
+            <Image src={s.coverUrl} alt={s.title} fill className="object-cover" sizes="48px" />
           ) : (
             <div className="w-full h-full bg-gradient-to-b from-primary to-primary-dark flex items-center justify-center">
               <span className="text-white text-xl">📚</span>
@@ -78,7 +81,30 @@ function BundlesSection() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <SkeletonTheme baseColor="#e8f0ee" highlightColor="#2B8A72" enableAnimation>
+        <div className="mb-8">
+          <Skeleton width={140} height={14} className="mb-1" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="bg-white border border-border rounded-2xl p-4">
+                <div className="flex items-center gap-4 mb-3">
+                  <Skeleton width={112} height={64} className="rounded-xl" />
+                  <div className="flex-1">
+                    <Skeleton width="80%" height={12} />
+                    <Skeleton width="60%" height={10} className="mt-1" />
+                    <Skeleton width="50%" height={14} className="mt-2" />
+                  </div>
+                </div>
+                <Skeleton height={32} className="rounded-xl" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </SkeletonTheme>
+    );
+  }
   if (bundles.length === 0) return null;
 
   return (

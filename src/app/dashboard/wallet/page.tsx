@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import {
-  ResponsiveContainer, LineChart, Line,
-  XAxis, YAxis, CartesianGrid, Tooltip,
-} from "recharts";
+import dynamic from "next/dynamic";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
+
+const WalletLineChart = dynamic(() => import("@/components/charts/WalletLineChart"), { ssr: false });
 
 // ── Types ─────────────────────────────────────────────────────────
 type ChartPoint = { date: string; amount: number };
@@ -31,22 +32,6 @@ const TX_META: Record<string, { label: string; color: string; bg: string }> = {
   CATEGORY_REGISTRATION: { label: "Category",   color: "#6b7280", bg: "#6b728015" },
   ADJUSTMENT:            { label: "Adjustment",  color: "#6b7280", bg: "#6b728015" },
 };
-
-// ── Chart tooltip ─────────────────────────────────────────────────
-function ChartTooltip({ active, payload, label }: {
-  active?: boolean; payload?: { value: number }[]; label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  const d = new Date(label ?? "");
-  return (
-    <div className="bg-white border border-border rounded-xl shadow-lg px-4 py-3 text-sm">
-      <p className="text-gray-500 text-xs mb-1">
-        {d.toLocaleDateString("en-NG", { day: "numeric", month: "short" })}
-      </p>
-      <p className="font-bold text-primary">₦{payload[0].value.toLocaleString()}</p>
-    </div>
-  );
-}
 
 // ── Withdrawal modal ──────────────────────────────────────────────
 function WithdrawModal({ balance, onClose, onSuccess }: {
@@ -187,17 +172,6 @@ export default function WalletPage() {
     txFilter === "ALL" || t.type === txFilter
   ) ?? [];
 
-  // X-axis tick formatter
-  function fmtDate(dateStr: string) {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString("en-NG", { day: "numeric", month: "short" });
-  }
-
-  // Show only every 5th tick to avoid crowding
-  const ticks = data?.chartData
-    .filter((_, i) => i % 5 === 0 || i === (data.chartData.length - 1))
-    .map((p) => p.date) ?? [];
-
   return (
     <div className="min-h-screen bg-bg-light">
       {/* Header */}
@@ -208,9 +182,33 @@ export default function WalletPage() {
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-          </div>
+          <SkeletonTheme baseColor="#e8f0ee" highlightColor="#2B8A72" enableAnimation>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="rounded-2xl p-5 bg-white border border-border">
+                  <Skeleton width="50%" height={12} />
+                  <Skeleton width="70%" height={32} className="mt-2" />
+                  <Skeleton width="60%" height={10} className="mt-1" />
+                </div>
+              ))}
+            </div>
+            <div className="bg-white border border-border rounded-2xl p-5">
+              <Skeleton width="40%" height={14} />
+              <Skeleton height={200} className="mt-4" />
+            </div>
+            <div className="bg-white border border-border rounded-2xl p-5">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center gap-3 py-3 border-b border-border last:border-0">
+                  <Skeleton circle width={40} height={40} />
+                  <div className="flex-1">
+                    <Skeleton width="60%" height={12} />
+                    <Skeleton width="40%" height={10} className="mt-1" />
+                  </div>
+                  <Skeleton width={80} height={14} />
+                </div>
+              ))}
+            </div>
+          </SkeletonTheme>
         ) : !data ? (
           <div className="text-center py-16 text-gray-400 text-sm">Failed to load wallet data.</div>
         ) : (
@@ -253,25 +251,7 @@ export default function WalletPage() {
                   ₦{data.chartData.reduce((s, p) => s + p.amount, 0).toLocaleString()}
                 </span>
               </div>
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={data.chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                  <XAxis
-                    dataKey="date" tickFormatter={fmtDate} ticks={ticks}
-                    tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false}
-                    tickFormatter={(v: number) => v >= 1000 ? `₦${(v / 1000).toFixed(0)}k` : `₦${v}`}
-                  />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Line
-                    type="monotone" dataKey="amount"
-                    stroke="#1A6659" strokeWidth={2.5}
-                    dot={false} activeDot={{ r: 5, fill: "#1A6659", strokeWidth: 0 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <WalletLineChart data={data.chartData} />
             </div>
 
             {/* ── Viewer lock progress ── */}

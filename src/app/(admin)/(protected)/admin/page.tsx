@@ -1,9 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import {
-  ResponsiveContainer, LineChart, Line,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-} from "recharts";
+import dynamic from "next/dynamic";
+
+const AdminActivityChart = dynamic(() => import("@/components/charts/AdminActivityChart"), { ssr: false });
 
 type Stats = {
   totalUsers: number;
@@ -29,11 +28,6 @@ function fmt(n: number) {
   if (n >= 1_000_000) return `₦${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000)     return `₦${(n / 1_000).toFixed(1)}K`;
   return `₦${n.toLocaleString()}`;
-}
-
-function fmtDate(d: string) {
-  const dt = new Date(d);
-  return dt.toLocaleDateString("en-NG", { month: "short", day: "numeric" });
 }
 
 const STAT_CARDS = (s: Stats) => [
@@ -74,11 +68,6 @@ const STAT_CARDS = (s: Stats) => [
     color: "#1A6659",
   },
 ];
-
-// Show every 5th day label on x-axis
-function buildTicks(chartData: ChartPoint[]) {
-  return chartData.filter((_, i) => i % 5 === 0).map((d) => d.date);
-}
 
 export default function AdminDashboardPage() {
   const [data, setData] = useState<DashData | null>(null);
@@ -128,39 +117,7 @@ export default function AdminDashboardPage() {
         {loading ? (
           <div className="h-56 animate-pulse bg-gray-100 rounded-xl" />
         ) : (
-          <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={data!.chartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-              <XAxis
-                dataKey="date"
-                tickFormatter={fmtDate}
-                ticks={buildTicks(data!.chartData)}
-                tick={{ fontSize: 10, fill: "#9ca3af" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tickFormatter={(v) => fmt(v)}
-                tick={{ fontSize: 10, fill: "#9ca3af" }}
-                axisLine={false}
-                tickLine={false}
-                width={60}
-              />
-              <Tooltip
-                formatter={(v: number, name: string) => [fmt(v), name.charAt(0).toUpperCase() + name.slice(1)]}
-                labelFormatter={fmtDate}
-                contentStyle={{ borderRadius: 12, border: "1px solid #e5e7eb", fontSize: 12 }}
-              />
-              <Legend
-                iconType="circle"
-                iconSize={8}
-                wrapperStyle={{ fontSize: 12, paddingTop: 12 }}
-              />
-              <Line dataKey="revenue"     name="Revenue"     stroke="#1A6659" strokeWidth={2} dot={false} />
-              <Line dataKey="withdrawals" name="Withdrawals" stroke="#F0B429" strokeWidth={2} dot={false} />
-              <Line dataKey="investments" name="Investments" stroke="#6366f1" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
+          <AdminActivityChart data={data!.chartData} />
         )}
       </div>
     </div>

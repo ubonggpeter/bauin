@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Story {
   id:          string;
@@ -142,7 +143,7 @@ export default function BundleDetailPage() {
             <div key={story.id} className="bg-white border border-border rounded-2xl p-4 flex items-start gap-3">
               <div className="w-12 h-16 rounded-xl overflow-hidden shrink-0 bg-primary/10">
                 {story.coverUrl ? (
-                  <img src={story.coverUrl} alt={story.title} className="w-full h-full object-cover" />
+                  <Image src={story.coverUrl} alt={story.title} fill className="object-cover" sizes="48px" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <span className="text-2xl">📚</span>
