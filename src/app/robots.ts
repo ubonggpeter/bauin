@@ -1,0 +1,17 @@
+import type { MetadataRoute } from "next";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://bauin.com";
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: [
+      {
+        userAgent: "*",
+        allow: "/",
+        disallow: ["/api/", "/dashboard/", "/admin/", "/auth/"],
+      },
+    ],
+    sitemap: `${APP_URL}/sitemap.xml`,
+    host:    APP_URL,
+  };
+}

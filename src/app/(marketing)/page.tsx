@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { label: "Categories", href: "#categories" },
   { label: "Referral", href: "#referral" },
   { label: "Pricing", href: "#pricing" },
+  { label: "Blog", href: "/blog" },
 ];
 
 const STATS = [
@@ -655,6 +656,7 @@ function Footer() {
                 { label: "Referral Program", href: "#referral" },
                 { label: "Pricing", href: "#pricing" },
                 { label: "Leaderboard", href: "/dashboard" },
+                { label: "Blog", href: "/blog" },
               ].map((l) => (
                 <li key={l.label}>
                   <a href={l.href} className="text-white/50 hover:text-white text-sm transition-colors">
