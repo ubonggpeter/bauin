@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
+import SupportWidget from "@/components/SupportWidget";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://bauin.com";
 
@@ -55,6 +56,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
     <>
       <JsonLd data={faqJsonLd} />
       {children}
+      <SupportWidget />
     </>
   );
 }

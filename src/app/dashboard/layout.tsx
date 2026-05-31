@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import SupportWidget from "@/components/SupportWidget";
 
 // Items shown in the mobile bottom tab bar (≤5 to fit 375 px)
 const MOBILE_TAB_LABELS = ["Home", "Explore", "Compete", "Wallet", "Profile"];
@@ -317,6 +318,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </div>
       </nav>
+
+      <SupportWidget />
     </div>
   );
 }

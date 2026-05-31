@@ -247,6 +247,8 @@ model User {
   affiliate              Affiliate?        @relation("AffiliateUser")
   affiliateReferralReceived AffiliateReferral? @relation("AffiliateReferredUser")
   affiliateReviews       Affiliate[]       @relation("AffiliateReviewer")
+  supportTickets         SupportTicket[]   @relation("UserSupportTickets")
+  assignedSupportTickets SupportTicket[]   @relation("TicketAssignee")
 
   @@index([referredById])
   @@index([referralCode])
@@ -1174,4 +1176,49 @@ model AffiliateReferral {
 
   @@index([affiliateId])
   @@map("affiliate_referrals")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║             SUPPORT / HELPDESK               ║
+// ╚══════════════════════════════════════════════╝
+
+enum SupportTicketStatus {
+  BOT         // AI is handling; fewer than 3 AI replies
+  OPEN        // Escalated to human, awaiting admin
+  IN_PROGRESS // Admin has picked it up
+  RESOLVED
+  CLOSED
+}
+
+model SupportTicket {
+  id           String              @id @default(cuid())
+  userId       String?             @map("user_id")
+  user         User?               @relation("UserSupportTickets", fields: [userId], references: [id])
+  subject      String?             @db.Text
+  status       SupportTicketStatus @default(BOT)
+  aiReplies    Int                 @default(0) @map("ai_replies")
+  assignedToId String?             @map("assigned_to_id")
+  assignedTo   User?               @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  resolvedAt   DateTime?           @map("resolved_at")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  messages SupportMessage[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([assignedToId])
+  @@map("support_tickets")
+}
+
+model SupportMessage {
+  id        String        @id @default(cuid())
+  ticketId  String        @map("ticket_id")
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  role      String        // "user" | "assistant" | "admin"
+  body      String        @db.Text
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  @@index([ticketId, createdAt(sort: Asc)])
+  @@map("support_messages")
 }
