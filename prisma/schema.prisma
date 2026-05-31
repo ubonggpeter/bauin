@@ -572,10 +572,15 @@ model DistributorCollection {
   user                User      @relation(fields: [userId], references: [id])
   name                String
   publicLinkCode      String    @unique @map("public_link_code")
+  customAlias         String?   @unique @map("custom_alias")
   isInUse             Boolean   @default(false) @map("is_in_use")
   scheduledActivateAt DateTime? @map("scheduled_activate_at")
   description         String?   @db.Text
   maxParticipants     Int?      @map("max_participants")
+  ctaText             String?   @map("cta_text")
+  accentColor         String?   @map("accent_color")
+  logoUrl             String?   @map("logo_url")
+  welcomeMessage      String?   @db.Text @map("welcome_message")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
@@ -583,6 +588,7 @@ model DistributorCollection {
 
   @@index([userId])
   @@index([publicLinkCode])
+  @@index([customAlias])
   @@map("distributor_collections")
 }
 

@@ -11,6 +11,8 @@ type SessionInfo = {
   collection: {
     name: string; description: string | null; publicLinkCode: string;
     isInUse: boolean; scheduledActivateAt: string | null; hostName: string;
+    ctaText: string | null; accentColor: string | null;
+    logoUrl: string | null; welcomeMessage: string | null;
   };
   session:    { id: string; status: string; title: string };
   playerCount: number;
@@ -531,9 +533,11 @@ export default function QuizLobbyPage() {
   const canPlay = info?.collection.isInUse && info?.session.status !== "ENDED";
   const ended   = info?.session.status === "ENDED";
 
+  const accent = info?.collection.accentColor ?? "#1A6659";
+
   return (
     <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center p-4"
-      style={{ background: "linear-gradient(135deg,#0E4A3D 0%,#1A1A2E 60%,#0a1628 100%)" }}>
+      style={{ background: `linear-gradient(135deg,${accent}cc 0%,#1A1A2E 60%,#0a1628 100%)` }}>
 
       {/* Blobs */}
       <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-20"
@@ -566,15 +570,22 @@ export default function QuizLobbyPage() {
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden w-full">
           {/* Header */}
           <div className="relative px-6 pt-8 pb-6"
-            style={{ background: "linear-gradient(135deg,#1A6659 0%,#0E4A3D 100%)" }}>
+            style={{ background: `linear-gradient(135deg,${accent} 0%,${accent}cc 100%)` }}>
+            {/* Logo */}
+            {info?.collection.logoUrl && (
+              <img src={info.collection.logoUrl} alt="logo" className="h-8 mb-3 object-contain" />
+            )}
             <p className="text-xs text-white/60 font-medium uppercase tracking-widest mb-2">
               Hosted by {info?.collection.hostName ?? "—"}
             </p>
             <h1 className="text-2xl font-black text-white leading-tight">
               {info?.session.title ?? info?.collection.name ?? "Loading…"}
             </h1>
-            {info?.collection.description && (
-              <p className="text-sm text-white/60 mt-1 line-clamp-2">{info.collection.description}</p>
+            {/* Welcome message (custom) or description */}
+            {(info?.collection.welcomeMessage || info?.collection.description) && (
+              <p className="text-sm text-white/70 mt-1 line-clamp-2">
+                {info.collection.welcomeMessage ?? info.collection.description}
+              </p>
             )}
             <div className="absolute top-6 right-6">
               {ended ? (
@@ -656,7 +667,7 @@ export default function QuizLobbyPage() {
                   ) : (
                     <span className="flex items-center justify-center gap-2">
                       <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                      Play Now
+                      {info?.collection.ctaText ?? "Play Now"}
                     </span>
                   )}
                 </button>

@@ -7,9 +7,14 @@ type Collection = {
   name:                string;
   description:         string | null;
   publicLinkCode:      string;
+  customAlias:         string | null;
   isInUse:             boolean;
   scheduledActivateAt: string | null;
   maxParticipants:     number | null;
+  ctaText:             string | null;
+  accentColor:         string | null;
+  logoUrl:             string | null;
+  welcomeMessage:      string | null;
   createdAt:           string;
   sessionCount:        number;
   players:             number;
@@ -22,33 +27,37 @@ const MOCK: Collection[] = [
   {
     id: "1", name: "Story: The Hustle",
     description: "Referral link for story: The Hustle | storyId:abc123",
-    publicLinkCode: "Z4T8XQRP2",
+    publicLinkCode: "Z4T8XQRP2", customAlias: null,
     isInUse: true, scheduledActivateAt: null,
     maxParticipants: null, createdAt: "2024-11-01T10:00:00Z",
+    ctaText: null, accentColor: null, logoUrl: null, welcomeMessage: null,
     sessionCount: 5, players: 48, earnings: 12400, royaltyOwed: 1860,
   },
   {
     id: "2", name: "Story: Digital Empire",
     description: "Referral link for story: Digital Empire | storyId:def456",
-    publicLinkCode: "A7K2MNVB1",
+    publicLinkCode: "A7K2MNVB1", customAlias: "digital-empire",
     isInUse: false, scheduledActivateAt: "2025-01-15T09:00:00Z",
     maxParticipants: 100, createdAt: "2024-11-10T08:30:00Z",
+    ctaText: null, accentColor: "#7C3AED", logoUrl: null, welcomeMessage: null,
     sessionCount: 2, players: 19, earnings: 5200, royaltyOwed: 780,
   },
   {
     id: "3", name: "Story: Blockchain Wealth",
     description: "Referral link for story: Blockchain Wealth | storyId:ghi789",
-    publicLinkCode: "C9R5YTVD3",
+    publicLinkCode: "C9R5YTVD3", customAlias: null,
     isInUse: true, scheduledActivateAt: null,
     maxParticipants: null, createdAt: "2024-11-18T14:00:00Z",
+    ctaText: null, accentColor: null, logoUrl: null, welcomeMessage: null,
     sessionCount: 8, players: 73, earnings: 22100, royaltyOwed: 3315,
   },
   {
     id: "4", name: "Story: Morning Millionaire",
     description: "Referral link for story: Morning Millionaire | storyId:jkl012",
-    publicLinkCode: "F2W0EPLQ8",
+    publicLinkCode: "F2W0EPLQ8", customAlias: null,
     isInUse: false, scheduledActivateAt: null,
     maxParticipants: null, createdAt: "2024-12-01T11:00:00Z",
+    ctaText: null, accentColor: null, logoUrl: null, welcomeMessage: null,
     sessionCount: 0, players: 0, earnings: 0, royaltyOwed: 0,
   },
 ];
@@ -148,6 +157,173 @@ function ScheduleModal({
   );
 }
 
+// ── Customise Modal ────────────────────────────────────────────────
+function CustomiseModal({
+  collection,
+  onClose,
+  onSave,
+}: {
+  collection: Collection;
+  onClose:    () => void;
+  onSave:     (data: Partial<Collection>) => Promise<void>;
+}) {
+  const [alias,   setAlias]   = useState(collection.customAlias ?? "");
+  const [cta,     setCta]     = useState(collection.ctaText     ?? "");
+  const [color,   setColor]   = useState(collection.accentColor ?? "#1A6659");
+  const [logo,    setLogo]    = useState(collection.logoUrl     ?? "");
+  const [welcome, setWelcome] = useState(collection.welcomeMessage ?? "");
+  const [saving,  setSaving]  = useState(false);
+  const [error,   setError]   = useState("");
+
+  async function handleSave() {
+    setError("");
+    if (alias && !/^[a-z0-9-]{3,30}$/.test(alias)) {
+      setError("Alias: 3–30 lowercase letters, numbers, or hyphens only");
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSave({
+        customAlias:    alias    || null,
+        ctaText:        cta      || null,
+        accentColor:    color    || null,
+        logoUrl:        logo     || null,
+        welcomeMessage: welcome  || null,
+      });
+      onClose();
+    } catch {
+      setError("Save failed. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const aliasUrl = alias ? `https://bauin.com/play/${alias}` : null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="font-semibold text-text-dark text-lg">Customise Quiz Page</h3>
+            <p className="text-xs text-gray-500 mt-0.5 truncate">{collection.name}</p>
+          </div>
+          <button onClick={onClose}
+            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-4 h-4">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">{error}</div>
+        )}
+
+        <div className="space-y-4">
+          {/* Custom alias */}
+          <div>
+            <label className="block text-sm font-semibold text-text-dark mb-1.5">
+              Custom Alias
+              <span className="text-gray-400 font-normal ml-1">— bauin.com/play/<em>alias</em></span>
+            </label>
+            <input
+              type="text"
+              value={alias}
+              onChange={(e) => setAlias(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+              placeholder="e.g. hustle-quiz"
+              className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            />
+            {aliasUrl && (
+              <p className="text-xs text-green-600 mt-1 font-mono">{aliasUrl}</p>
+            )}
+          </div>
+
+          {/* Accent colour */}
+          <div>
+            <label className="block text-sm font-semibold text-text-dark mb-1.5">Accent Colour</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="w-12 h-12 rounded-xl border border-border cursor-pointer bg-white p-1"
+              />
+              <input
+                type="text"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                placeholder="#1A6659"
+                className="flex-1 border border-border rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <div className="w-10 h-10 rounded-xl flex-shrink-0" style={{ background: color }} />
+            </div>
+          </div>
+
+          {/* CTA text */}
+          <div>
+            <label className="block text-sm font-semibold text-text-dark mb-1.5">
+              CTA Button Text
+              <span className="text-gray-400 font-normal ml-1">— default: Play Now</span>
+            </label>
+            <input
+              type="text"
+              value={cta}
+              onChange={(e) => setCta(e.target.value)}
+              placeholder="Play Now"
+              maxLength={40}
+              className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            />
+          </div>
+
+          {/* Logo URL */}
+          <div>
+            <label className="block text-sm font-semibold text-text-dark mb-1.5">Logo URL</label>
+            <input
+              type="url"
+              value={logo}
+              onChange={(e) => setLogo(e.target.value)}
+              placeholder="https://…/logo.png"
+              className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            />
+            {logo && (
+              <img src={logo} alt="logo preview" className="h-8 mt-2 object-contain rounded" onError={(e) => (e.currentTarget.style.display = "none")} />
+            )}
+          </div>
+
+          {/* Welcome message */}
+          <div>
+            <label className="block text-sm font-semibold text-text-dark mb-1.5">Welcome Message</label>
+            <textarea
+              value={welcome}
+              onChange={(e) => setWelcome(e.target.value)}
+              rows={3}
+              placeholder="Welcome! Join this quiz to win big prizes…"
+              maxLength={280}
+              className="w-full border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+            />
+            <p className="text-xs text-gray-400 text-right mt-0.5">{welcome.length}/280</p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-5">
+          <button onClick={onClose}
+            className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-gray-600 hover:bg-bg-light transition-colors">
+            Cancel
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition-colors disabled:opacity-50">
+            {saving ? "Saving…" : "Save Changes"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Stat block ─────────────────────────────────────────────────────
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
@@ -164,16 +340,20 @@ function CollectionCard({
   collection,
   onToggle,
   onSchedule,
+  onCustomise,
 }: {
-  collection: Collection;
-  onToggle: (id: string, next: boolean) => Promise<void>;
-  onSchedule: (c: Collection) => void;
+  collection:  Collection;
+  onToggle:    (id: string, next: boolean) => Promise<void>;
+  onSchedule:  (c: Collection) => void;
+  onCustomise: (c: Collection) => void;
 }) {
   const [active, setActive]   = useState(collection.isInUse);
   const [copying, setCopying] = useState(false);
   const [toggling, setToggling] = useState(false);
 
-  const publicUrl = `https://bauin.app/ref/${collection.publicLinkCode}`;
+  const publicUrl = collection.customAlias
+    ? `https://bauin.com/play/${collection.customAlias}`
+    : `https://bauin.app/ref/${collection.publicLinkCode}`;
 
   async function handleToggle() {
     setToggling(true);
@@ -349,17 +529,29 @@ function CollectionCard({
           <span className="text-[11px] text-gray-400">No schedule set</span>
         )}
 
-        <button
-          onClick={() => onSchedule(collection)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-text-dark hover:bg-bg-light hover:border-primary/40 transition-colors"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-            <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-          </svg>
-          Schedule
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onSchedule(collection)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border text-xs font-medium text-text-dark hover:bg-bg-light hover:border-primary/40 transition-colors"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            Schedule
+          </button>
+          <button
+            onClick={() => onCustomise(collection)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border text-xs font-medium text-primary hover:bg-primary/5 hover:border-primary/40 transition-colors"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+            </svg>
+            Customise
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -385,10 +577,11 @@ function EmptyState() {
 
 // ── Page ───────────────────────────────────────────────────────────
 export default function CollectionsPage() {
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [royaltyPct, setRoyaltyPct]   = useState(15);
-  const [scheduling, setScheduling]   = useState<Collection | null>(null);
+  const [collections,  setCollections]  = useState<Collection[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [royaltyPct,   setRoyaltyPct]   = useState(15);
+  const [scheduling,   setScheduling]   = useState<Collection | null>(null);
+  const [customising,  setCustomising]  = useState<Collection | null>(null);
   const hasFetched = useRef(false);
 
   useEffect(() => {
@@ -431,6 +624,23 @@ export default function CollectionsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ scheduledActivateAt: dt }),
     });
+  }
+
+  async function handleCustomiseSave(data: Partial<Collection>) {
+    if (!customising) return;
+    const id = customising.id;
+    const res = await fetch(`/api/collections/${id}`, {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const d = await res.json();
+      throw new Error(d.error ?? "Save failed");
+    }
+    setCollections((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...data } : c))
+    );
   }
 
   const activeCount = collections.filter((c) => c.isInUse).length;
@@ -499,6 +709,7 @@ export default function CollectionsPage() {
                   collection={c}
                   onToggle={handleToggle}
                   onSchedule={setScheduling}
+                  onCustomise={setCustomising}
                 />
               ))
             )}
@@ -512,6 +723,15 @@ export default function CollectionsPage() {
           collection={scheduling}
           onClose={() => setScheduling(null)}
           onSave={handleScheduleSave}
+        />
+      )}
+
+      {/* ── Customise modal ── */}
+      {customising && (
+        <CustomiseModal
+          collection={customising}
+          onClose={() => setCustomising(null)}
+          onSave={handleCustomiseSave}
         />
       )}
     </div>

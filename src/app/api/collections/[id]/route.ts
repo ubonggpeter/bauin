@@ -7,7 +7,12 @@ export const dynamic = "force-dynamic";
 
 type PatchBody = {
   isInUse?:             boolean;
-  scheduledActivateAt?: string | null; // ISO string or null to clear
+  scheduledActivateAt?: string | null;
+  customAlias?:         string | null;
+  ctaText?:             string | null;
+  accentColor?:         string | null;
+  logoUrl?:             string | null;
+  welcomeMessage?:      string | null;
 };
 
 export async function PATCH(
@@ -36,19 +41,39 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
+  // Validate custom alias format (alphanumeric + hyphens, 3-30 chars)
+  if (body.customAlias !== undefined && body.customAlias !== null) {
+    if (!/^[a-z0-9-]{3,30}$/.test(body.customAlias)) {
+      return NextResponse.json(
+        { error: "Custom alias must be 3–30 lowercase letters, numbers, or hyphens" },
+        { status: 400 },
+      );
+    }
+    const conflict = await prisma.distributorCollection.findFirst({
+      where: { customAlias: body.customAlias, id: { not: id } },
+    });
+    if (conflict) {
+      return NextResponse.json({ error: "This alias is already taken" }, { status: 409 });
+    }
+  }
+
   const data: {
-    isInUse?: boolean;
+    isInUse?:             boolean;
     scheduledActivateAt?: Date | null;
+    customAlias?:         string | null;
+    ctaText?:             string | null;
+    accentColor?:         string | null;
+    logoUrl?:             string | null;
+    welcomeMessage?:      string | null;
   } = {};
 
-  if (typeof body.isInUse === "boolean") {
-    data.isInUse = body.isInUse;
-  }
-  if ("scheduledActivateAt" in body) {
-    data.scheduledActivateAt = body.scheduledActivateAt
-      ? new Date(body.scheduledActivateAt)
-      : null;
-  }
+  if (typeof body.isInUse === "boolean")      data.isInUse = body.isInUse;
+  if ("scheduledActivateAt" in body)          data.scheduledActivateAt = body.scheduledActivateAt ? new Date(body.scheduledActivateAt) : null;
+  if ("customAlias"     in body)              data.customAlias     = body.customAlias    ?? null;
+  if ("ctaText"         in body)              data.ctaText         = body.ctaText        ?? null;
+  if ("accentColor"     in body)              data.accentColor     = body.accentColor    ?? null;
+  if ("logoUrl"         in body)              data.logoUrl         = body.logoUrl        ?? null;
+  if ("welcomeMessage"  in body)              data.welcomeMessage  = body.welcomeMessage ?? null;
 
   const updated = await prisma.distributorCollection.update({
     where: { id },
@@ -59,5 +84,10 @@ export async function PATCH(
     id:                  updated.id,
     isInUse:             updated.isInUse,
     scheduledActivateAt: updated.scheduledActivateAt?.toISOString() ?? null,
+    customAlias:         updated.customAlias,
+    ctaText:             updated.ctaText,
+    accentColor:         updated.accentColor,
+    logoUrl:             updated.logoUrl,
+    welcomeMessage:      updated.welcomeMessage,
   });
 }
