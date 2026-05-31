@@ -3,7 +3,12 @@ import RegisterForm from "./RegisterForm";
 export default function RegisterPage({
   searchParams,
 }: {
-  searchParams: { ref?: string };
+  searchParams: { ref?: string; aff?: string };
 }) {
-  return <RegisterForm initialRef={searchParams.ref ?? ""} />;
+  return (
+    <RegisterForm
+      initialRef={searchParams.ref ?? ""}
+      affiliateCode={searchParams.aff ?? ""}
+    />
+  );
 }

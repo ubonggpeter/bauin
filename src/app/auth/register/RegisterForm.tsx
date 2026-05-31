@@ -157,19 +157,35 @@ function LeftPanel({ step, name, email }: LeftPanelProps) {
 // ── Step 1 — account form ─────────────────────────────────────────────────────
 
 interface Step1Props {
-  form:     { name: string; email: string; phone: string; password: string; referral_code: string };
-  setField: (f: string) => (e: React.ChangeEvent<HTMLInputElement>) => void;
-  error:    string;
-  onSubmit: (e: React.FormEvent) => void;
+  form:          { name: string; email: string; phone: string; password: string; referral_code: string };
+  setField:      (f: string) => (e: React.ChangeEvent<HTMLInputElement>) => void;
+  error:         string;
+  onSubmit:      (e: React.FormEvent) => void;
+  affiliateCode: string;
 }
 
-function StepOneForm({ form, setField, error, onSubmit }: Step1Props) {
+function StepOneForm({ form, setField, error, onSubmit, affiliateCode }: Step1Props) {
   const hasRef = form.referral_code.trim().length > 0;
+  const hasAff = affiliateCode.trim().length > 0;
   const INPUT  = "w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors placeholder-gray-400";
 
   return (
     <main className="flex-1 bg-white flex items-start justify-center px-6 py-10 overflow-y-auto">
       <div className="w-full max-w-md">
+
+        {/* Affiliate banner */}
+        {hasAff && (
+          <div className="mb-4 flex items-center gap-3 bg-purple-50 border border-purple-200 text-purple-800 rounded-xl px-4 py-3">
+            <span className="w-7 h-7 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 shrink-0 text-xs font-black">A</span>
+            <p className="text-sm font-medium">
+              Affiliate code{" "}
+              <span className="font-mono font-black tracking-widest text-purple-900">
+                {affiliateCode.toUpperCase()}
+              </span>{" "}
+              applied.
+            </p>
+          </div>
+        )}
 
         {/* Referral banner */}
         {hasRef && (
@@ -575,9 +591,9 @@ function SuccessScreen({ email, selectedCount, total }: { email: string; selecte
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-interface RegisterFormProps { initialRef: string }
+interface RegisterFormProps { initialRef: string; affiliateCode?: string }
 
-export default function RegisterForm({ initialRef }: RegisterFormProps) {
+export default function RegisterForm({ initialRef, affiliateCode = "" }: RegisterFormProps) {
   const router  = useRouter();
   const [step,     setStep]    = useState<1 | 2>(1);
   const [form,     setFormState] = useState({
@@ -628,7 +644,7 @@ export default function RegisterForm({ initialRef }: RegisterFormProps) {
       const res  = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, affiliateCode: affiliateCode || undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -687,6 +703,7 @@ export default function RegisterForm({ initialRef }: RegisterFormProps) {
           setField={setField}
           error={error}
           onSubmit={handleStep1}
+          affiliateCode={affiliateCode}
         />
       ) : (
         <StepTwoContent
