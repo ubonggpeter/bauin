@@ -86,6 +86,8 @@ enum TransactionType {
   ACHIEVEMENT_BONUS
   LEADERBOARD_PRIZE
   ADJUSTMENT
+  JOB_ESCROW
+  JOB_PAYMENT
 }
 
 enum TransactionStatus {
@@ -170,6 +172,10 @@ enum NotificationType {
   INVESTMENT_FUNDED
   WEEKLY_LEADERBOARD
   ANNOUNCEMENT
+  JOB_NEW_APPLICATION
+  JOB_ASSIGNED
+  JOB_SUBMITTED
+  JOB_APPROVED
 }
 
 // ╔══════════════════════════════════════════════╗
@@ -231,6 +237,9 @@ model User {
   pushSubscriptions      PushSubscription[]
   kycDocument            KycDocument?
   fraudFlags             FraudFlag[]
+  postedJobs             Job[]             @relation("JobPoster")
+  assignedJobs           Job[]             @relation("JobWorker")
+  jobApplications        JobApplication[]  @relation("JobApplications")
 
   @@index([referredById])
   @@index([referralCode])
@@ -262,6 +271,7 @@ model Category {
   testAttempts   TestAttempt[]
   certificates   UserCertificate[]
   quizSessions   QuizSession[]
+  jobs           Job[]
 
   @@map("categories")
 }
@@ -1004,6 +1014,65 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║                 JOBS                         ║
+// ╚══════════════════════════════════════════════╝
+
+enum JobStatus {
+  OPEN
+  ASSIGNED
+  SUBMITTED
+  APPROVED
+  CANCELLED
+  DISPUTED
+}
+
+model Job {
+  id               String    @id @default(cuid())
+  posterId         String    @map("poster_id")
+  poster           User      @relation("JobPoster", fields: [posterId], references: [id])
+  categoryId       String    @map("category_id")
+  category         Category  @relation(fields: [categoryId], references: [id])
+  title            String
+  description      String    @db.Text
+  budget           Decimal   @db.Decimal(18, 2)
+  deadline         DateTime
+  status           JobStatus @default(OPEN)
+  assignedWorkerId String?   @map("assigned_worker_id")
+  assignedWorker   User?     @relation("JobWorker", fields: [assignedWorkerId], references: [id])
+  escrowRef        String?   @unique @map("escrow_ref")
+  submissionNote   String?   @db.Text @map("submission_note")
+  submittedAt      DateTime? @map("submitted_at")
+  approvedAt       DateTime? @map("approved_at")
+  cancelledAt      DateTime? @map("cancelled_at")
+  cancelReason     String?   @db.Text @map("cancel_reason")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  applications JobApplication[]
+
+  @@index([posterId])
+  @@index([assignedWorkerId])
+  @@index([categoryId, status])
+  @@index([status])
+  @@map("jobs")
+}
+
+model JobApplication {
+  id        String   @id @default(cuid())
+  jobId     String   @map("job_id")
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  workerId  String   @map("worker_id")
+  worker    User     @relation("JobApplications", fields: [workerId], references: [id])
+  coverNote String?  @db.Text @map("cover_note")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([jobId, workerId])
+  @@index([jobId])
+  @@index([workerId])
+  @@map("job_applications")
 }
 
 // ╔══════════════════════════════════════════════╗
