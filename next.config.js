@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -12,7 +14,6 @@ const nextConfig = {
       // Dev
       { protocol: "http", hostname: "localhost" },
     ],
-    // Serve optimised images from CDN when available
     loader: "default",
   },
   experimental: {
@@ -25,4 +26,21 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // Sentry org + project (set via env or .sentryclirc)
+  org:     process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+
+  // Upload source maps to Sentry; requires SENTRY_AUTH_TOKEN
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+
+  // Suppress the Sentry CLI output during builds
+  silent: !process.env.CI,
+
+  // Automatically instrument server-side routes
+  autoInstrumentServerFunctions: true,
+  hideSourceMaps: true,
+
+  // Disable telemetry
+  telemetry: false,
+});

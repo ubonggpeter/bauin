@@ -1,0 +1,221 @@
+name: CI / CD
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+
+# ─────────────────────────────────────────────────────────────────
+jobs:
+  # ── 1. Unit tests ─────────────────────────────────────────────
+  unit-test:
+    name: Unit Tests (Jest)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: bauin
+          POSTGRES_PASSWORD: bauin_ci
+          POSTGRES_DB: bauin_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://bauin:bauin_ci@localhost:5432/bauin_test
+      NEXTAUTH_SECRET: ci-nextauth-secret-not-real
+      NEXTAUTH_URL: http://localhost:3000
+      REDIS_URL: redis://localhost:6379
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run database migrations
+        run: npx prisma migrate deploy
+
+      - name: Run unit tests
+        run: npm run test:unit -- --ci --coverage
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+  # ── 2. Build ───────────────────────────────────────────────────
+  build:
+    name: Next.js Build
+    runs-on: ubuntu-latest
+    needs: unit-test
+
+    env:
+      DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+      NEXTAUTH_SECRET: ci-build-secret
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_SENTRY_DSN: ""
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci --legacy-peer-deps
+
+      - run: npx prisma generate
+
+      - name: Build Next.js
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: .next/
+          retention-days: 1
+
+  # ── 3. E2E tests ───────────────────────────────────────────────
+  e2e:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: bauin
+          POSTGRES_PASSWORD: bauin_ci
+          POSTGRES_DB: bauin_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+
+    env:
+      DATABASE_URL: postgresql://bauin:bauin_ci@localhost:5432/bauin_test
+      NEXTAUTH_SECRET: ci-nextauth-secret-not-real
+      NEXTAUTH_URL: http://localhost:3000
+      REDIS_URL: redis://localhost:6379
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      CI: "true"
+      E2E_BASE_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci --legacy-peer-deps
+
+      - run: npx prisma generate && npx prisma migrate deploy
+
+      - name: Seed database
+        run: npx prisma db seed
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+
+  # ── 4. Deploy — Vercel (Next.js) ──────────────────────────────
+  deploy-vercel:
+    name: Deploy → Vercel
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci --legacy-peer-deps
+
+      - name: Deploy to Vercel
+        run: npx vercel --prod --token ${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  # ── 5. Deploy — Railway (Express backend) ────────────────────
+  deploy-railway:
+    name: Deploy → Railway
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy Express backend
+        run: railway up --service bauin-backend --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

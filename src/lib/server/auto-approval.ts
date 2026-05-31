@@ -11,7 +11,7 @@ export type ApprovalResult = {
 
 type Condition = { field: string; operator: string; value: string };
 
-function evalCondition(cond: Condition, data: Record<string, unknown>): boolean {
+export function evalCondition(cond: Condition, data: Record<string, unknown>): boolean {
   const raw = data[cond.field];
   const op  = cond.operator;
 
