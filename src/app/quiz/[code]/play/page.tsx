@@ -2,6 +2,7 @@
 import confetti from "canvas-confetti";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 // ── Types ──────────────────────────────────────────────────────────
 type FlashCard  = { id: string; front: string; back: string };
@@ -572,10 +573,49 @@ function WinnerScreen({ total, onContinue }: { total: number; onContinue: () => 
 }
 
 // ══════════════════════════════════════════════════════════════════
+// SAVE WINNINGS PROMPT  (shown to unauthenticated users after game)
+// ══════════════════════════════════════════════════════════════════
+function SaveWinningsPrompt({ total }: { total: number }) {
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return null;
+  return (
+    <div className="fixed bottom-0 inset-x-0 z-50 p-4 animate-slide-up">
+      <div className="max-w-sm mx-auto rounded-2xl overflow-hidden shadow-2xl"
+        style={{ background: "linear-gradient(135deg,#F0B429,#d4981e)" }}>
+        <div className="px-5 pt-5 pb-4">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p className="font-black text-text-dark text-lg leading-tight">
+                Save your winnings!
+              </p>
+              <p className="text-text-dark/70 text-sm mt-0.5">
+                You scored <strong>{total}</strong>/500 — create a free account to keep your progress &amp; earn from future wins.
+              </p>
+            </div>
+            <button onClick={() => setDismissed(true)}
+              className="w-7 h-7 rounded-full bg-black/10 flex items-center justify-center shrink-0 mt-0.5">
+              <svg className="w-3.5 h-3.5 text-text-dark" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <a href={`/auth/register/viewer?score=${total}`}
+            className="block w-full py-3 rounded-xl bg-text-dark text-white font-black text-sm text-center hover:bg-gray-900 transition-colors">
+            Create free account →
+          </a>
+          <p className="text-center text-text-dark/50 text-xs mt-2">No payment required · Takes 30 seconds</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
 // RESULTS SCREEN
 // ══════════════════════════════════════════════════════════════════
-function ResultsScreen({ scores, rank, totalPlayers, onShare }: {
+function ResultsScreen({ scores, rank, totalPlayers, onShare, showSavePrompt }: {
   scores: number[]; rank: number | null; totalPlayers: number; onShare: () => void;
+  showSavePrompt?: boolean;
 }) {
   const total = scores.reduce((a,b) => a+b, 0);
   const max   = 500;
@@ -652,6 +692,7 @@ function ResultsScreen({ scores, rank, totalPlayers, onShare }: {
           Back to Lobby
         </button>
       </div>
+      {showSavePrompt && <SaveWinningsPrompt total={total} />}
     </div>
   );
 }
@@ -680,8 +721,9 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════════
 export default function QuizPlayPage() {
-  const { code } = useParams<{ code: string }>();
-  const router   = useRouter();
+  const { code }           = useParams<{ code: string }>();
+  const router             = useRouter();
+  const { status: authStatus } = useSession();
 
   const [phase,       setPhase]       = useState<Phase>("loading");
   const [showResult,  setShowResult]  = useState(false);
@@ -792,7 +834,8 @@ export default function QuizPlayPage() {
             Saving…
           </div>
         )}
-        <ResultsScreen scores={scores} rank={rank} totalPlayers={totalPlayers} onShare={handleShare} />
+        <ResultsScreen scores={scores} rank={rank} totalPlayers={totalPlayers} onShare={handleShare}
+          showSavePrompt={authStatus === "unauthenticated"} />
       </div>
     );
   }

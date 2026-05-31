@@ -1,5 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 const CATEGORIES = [
   { id: "ai-content", icon: "✍️", name: "AI Content" },
@@ -84,6 +86,16 @@ function VerifiedBadge() {
 }
 
 export default function DashboardPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  // Redirect viewers to their dedicated dashboard
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role === "VIEWER") {
+      router.replace("/dashboard/viewer");
+    }
+  }, [status, session, router]);
+
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [copied, setCopied] = useState(false);
