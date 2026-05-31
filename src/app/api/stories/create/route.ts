@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { checkAutoApproval, logApprovalDecision } from "@/lib/server/auto-approval";
+import { triggerSubscriberAutoPurchases } from "@/lib/server/auto-purchase";
 
 export const dynamic = "force-dynamic";
 
@@ -135,6 +136,11 @@ export async function POST(req: Request) {
     quizCount:    quiz.length,
     collaboratorCount: collaborators.length,
   });
+
+  // Fire-and-forget — do not block the response
+  if (approval.approved) {
+    void triggerSubscriberAutoPurchases(story.id);
+  }
 
   return NextResponse.json({
     storyId:  story.id,

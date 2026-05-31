@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/adminSession";
 import { prisma } from "@/lib/db";
+import { triggerSubscriberAutoPurchases } from "@/lib/server/auto-purchase";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,16 @@ export async function POST(
       reason:            body.note ?? (body.outcome === "APPROVED" ? "Manually approved" : "Manually rejected"),
     },
   });
+
+  // Publish the story (and its episodes) when admin approves
+  if (body.outcome === "APPROVED" && log.requestType === "STORY_SUBMISSION") {
+    const storyId = (log.requestData as { storyId?: string }).storyId;
+    if (storyId) {
+      await prisma.story.update({ where: { id: storyId }, data: { isPublished: true } });
+      await prisma.episode.updateMany({ where: { storyId }, data: { isPublished: true } });
+      void triggerSubscriberAutoPurchases(storyId);
+    }
+  }
 
   return NextResponse.json({ item: updated });
 }

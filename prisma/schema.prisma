@@ -253,6 +253,8 @@ model User {
   storyBundles           StoryBundle[]
   bundlePurchases        BundlePurchase[]
   storyCollaborations    StoryCollaborator[] @relation("StoryCollaborations")
+  subscriptions          SellerSubscription[] @relation("SubscriberSubscriptions")
+  subscribers            SellerSubscription[] @relation("SellerSubscribers")
 
   @@index([referredById])
   @@index([referralCode])
@@ -534,6 +536,21 @@ model StoryCollaborator {
   @@map("story_collaborators")
 }
 
+model SellerSubscription {
+  id           String   @id @default(cuid())
+  subscriberId String   @map("subscriber_id")
+  sellerId     String   @map("seller_id")
+  autoPurchase Boolean  @default(false) @map("auto_purchase")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  subscriber   User @relation("SubscriberSubscriptions", fields: [subscriberId], references: [id])
+  seller       User @relation("SellerSubscribers", fields: [sellerId], references: [id])
+
+  @@unique([subscriberId, sellerId])
+  @@index([sellerId])
+  @@map("seller_subscriptions")
+}
+
 // game_content_json shape:
 // {
 //   phase1: { type: "memory_grid", cards: [...], timeLimit: 30 },
@@ -575,8 +592,9 @@ model StoryPurchase {
   story       Story?   @relation(fields: [storyId], references: [id])
   episodeId   String?  @map("episode_id")
   episode     Episode? @relation(fields: [episodeId], references: [id])
-  amountPaid  Decimal  @db.Decimal(18, 2) @map("amount_paid")
-  purchasedAt DateTime @default(now()) @map("purchased_at")
+  amountPaid     Decimal  @db.Decimal(18, 2) @map("amount_paid")
+  isAutoPurchase Boolean  @default(false) @map("is_auto_purchase")
+  purchasedAt    DateTime @default(now()) @map("purchased_at")
 
   @@unique([userId, storyId])
   @@unique([userId, episodeId])
