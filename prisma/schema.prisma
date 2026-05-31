@@ -77,6 +77,7 @@ enum TransactionType {
   REFERRAL_BONUS
   INVESTMENT_RETURN
   STORY_PURCHASE
+  BUNDLE_PURCHASE
   CATEGORY_REGISTRATION
   CATEGORY_MONTHLY_FEE
   CATEGORY_RETRY_FEE
@@ -249,6 +250,8 @@ model User {
   affiliateReviews       Affiliate[]       @relation("AffiliateReviewer")
   supportTickets         SupportTicket[]   @relation("UserSupportTickets")
   assignedSupportTickets SupportTicket[]   @relation("TicketAssignee")
+  storyBundles           StoryBundle[]
+  bundlePurchases        BundlePurchase[]
 
   @@index([referredById])
   @@index([referralCode])
@@ -502,8 +505,9 @@ model Story {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  episodes  Episode[]
-  purchases StoryPurchase[]
+  episodes    Episode[]
+  purchases   StoryPurchase[]
+  bundleItems StoryBundleItem[]
 
   @@map("stories")
 }
@@ -525,6 +529,7 @@ model Episode {
   description     String?  @db.Text
   textContent     String?  @db.Text @map("text_content")
   contentUrl      String?  @map("content_url")
+  previewUrl      String?  @map("preview_url")
   gameContentJson Json     @map("game_content_json")
   isFree          Boolean  @default(false) @map("is_free")
   price           Decimal  @default(0) @db.Decimal(18, 2)
@@ -1221,4 +1226,56 @@ model SupportMessage {
 
   @@index([ticketId, createdAt(sort: Asc)])
   @@map("support_messages")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║             STORY BUNDLES                    ║
+// ╚══════════════════════════════════════════════╝
+
+model StoryBundle {
+  id           String   @id @default(cuid())
+  sellerId     String   @map("seller_id")
+  seller       User     @relation(fields: [sellerId], references: [id])
+  title        String
+  description  String?  @db.Text
+  bundlePrice  Decimal  @db.Decimal(18, 2) @map("bundle_price")
+  isPublished  Boolean  @default(false) @map("is_published")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  items     StoryBundleItem[]
+  purchases BundlePurchase[]
+
+  @@index([sellerId])
+  @@index([isPublished])
+  @@map("story_bundles")
+}
+
+model StoryBundleItem {
+  id        String      @id @default(cuid())
+  bundleId  String      @map("bundle_id")
+  bundle    StoryBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  storyId   String      @map("story_id")
+  story     Story       @relation(fields: [storyId], references: [id])
+  order     Int         @default(0)
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@unique([bundleId, storyId])
+  @@index([bundleId])
+  @@map("story_bundle_items")
+}
+
+model BundlePurchase {
+  id          String      @id @default(cuid())
+  userId      String      @map("user_id")
+  user        User        @relation(fields: [userId], references: [id])
+  bundleId    String      @map("bundle_id")
+  bundle      StoryBundle @relation(fields: [bundleId], references: [id])
+  amountPaid  Decimal     @db.Decimal(18, 2) @map("amount_paid")
+  purchasedAt DateTime    @default(now()) @map("purchased_at")
+
+  @@unique([userId, bundleId])
+  @@index([userId])
+  @@index([bundleId])
+  @@map("bundle_purchases")
 }

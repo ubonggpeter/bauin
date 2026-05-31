@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 
 type CreditType = "REFERRAL_BONUS" | "BET_PAYOUT" | "DEPOSIT" | "ADJUSTMENT" | "INVESTMENT_RETURN" | "STORY_PURCHASE" | "ACHIEVEMENT_BONUS" | "LEADERBOARD_PRIZE" | "JOB_PAYMENT" | "AFFILIATE_BONUS";
-type DebitType  = "WITHDRAWAL" | "BET_STAKE" | "CATEGORY_REGISTRATION" | "CATEGORY_MONTHLY_FEE" | "CATEGORY_RETRY_FEE" | "TOOL_POOL_FEE" | "ADJUSTMENT" | "JOB_ESCROW";
+type DebitType  = "WITHDRAWAL" | "BET_STAKE" | "CATEGORY_REGISTRATION" | "CATEGORY_MONTHLY_FEE" | "CATEGORY_RETRY_FEE" | "TOOL_POOL_FEE" | "ADJUSTMENT" | "JOB_ESCROW" | "STORY_PURCHASE" | "BUNDLE_PURCHASE";
 
 function makeRef(prefix: string, userId: string): string {
   return `${prefix}-${userId.slice(-6).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;

@@ -1,8 +1,103 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 const NICHES = ["All", "Business", "AI & Tech", "Finance", "Romance", "Self-Help", "Crypto", "Mystery"];
+
+// ── Bundle marketplace types ──
+interface BundleStory { id: string; title: string; coverUrl: string | null; price: number; }
+interface MarketBundle {
+  id: string; title: string; description: string | null;
+  bundlePrice: number; totalPrice: number; buyers: number;
+  seller: { name: string }; stories: BundleStory[]; storyCount: number;
+}
+
+function BundleCoverStack({ stories }: { stories: BundleStory[] }) {
+  const shown = stories.slice(0, 3);
+  return (
+    <div className="relative h-16 w-28 shrink-0">
+      {shown.map((s, i) => (
+        <div
+          key={s.id}
+          className="absolute top-0 w-12 h-16 rounded-xl overflow-hidden border-2 border-white shadow bg-primary/20"
+          style={{ left: i * 14, zIndex: shown.length - i }}
+        >
+          {s.coverUrl ? (
+            <img src={s.coverUrl} alt={s.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-b from-primary to-primary-dark flex items-center justify-center">
+              <span className="text-white text-xl">📚</span>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BundleCard({ bundle }: { bundle: MarketBundle }) {
+  const discount = bundle.totalPrice > 0
+    ? Math.round((1 - bundle.bundlePrice / bundle.totalPrice) * 100)
+    : 0;
+  return (
+    <div className="bg-white border border-border rounded-2xl p-4 hover:border-primary/40 hover:shadow-sm transition-all">
+      <div className="flex items-center gap-4 mb-3">
+        <BundleCoverStack stories={bundle.stories} />
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-text-dark text-sm leading-snug line-clamp-2">{bundle.title}</h3>
+          <p className="text-xs text-gray-400 mt-0.5">{bundle.storyCount} stories · {bundle.seller.name}</p>
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="text-sm font-black text-gold">₦{bundle.bundlePrice.toLocaleString()}</span>
+            <span className="text-xs text-gray-400 line-through">₦{bundle.totalPrice.toLocaleString()}</span>
+            <span className="text-[10px] font-black bg-gold/10 text-gold px-1.5 py-0.5 rounded-full">−{discount}%</span>
+          </div>
+        </div>
+      </div>
+      {bundle.description && (
+        <p className="text-xs text-gray-400 mb-3 line-clamp-2">{bundle.description}</p>
+      )}
+      <Link
+        href={`/dashboard/stories/bundles/${bundle.id}`}
+        className="block w-full text-center bg-primary text-white text-xs font-bold py-2 rounded-xl hover:bg-primary-dark transition-colors"
+      >
+        View Bundle
+      </Link>
+    </div>
+  );
+}
+
+function BundlesSection() {
+  const [bundles, setBundles] = useState<MarketBundle[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/marketplace/bundles")
+      .then((r) => r.json())
+      .then((d) => setBundles(d.bundles ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return null;
+  if (bundles.length === 0) return null;
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h2 className="text-base font-bold text-text-dark">Story Bundles</h2>
+          <p className="text-xs text-gray-400">Save more buying stories together</p>
+        </div>
+        <Link href="/dashboard/stories/bundles" className="text-xs text-primary font-semibold hover:underline">
+          Manage bundles →
+        </Link>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {bundles.map((b) => <BundleCard key={b.id} bundle={b} />)}
+      </div>
+    </div>
+  );
+}
 
 type Story = {
   id: string;
@@ -287,6 +382,9 @@ export default function StoriesPage() {
           Create Story
         </Link>
       </div>
+
+      {/* Bundle marketplace section */}
+      <BundlesSection />
 
       {/* Search */}
       <div className="relative mb-5">
