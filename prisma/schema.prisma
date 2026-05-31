@@ -213,6 +213,7 @@ model User {
   notifications          Notification[]
   auditLogs              AuditLog[]       @relation("AuditLogAdmin")
   withdrawalRequests     WithdrawalRequest[]
+  scriptGenerations      ScriptGeneration[]
 
   @@index([referredById])
   @@index([referralCode])
@@ -943,4 +944,27 @@ model WeeklyCompetition {
   @@index([status])
   @@index([weekStart])
   @@map("weekly_competitions")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║            CREATOR TOOLS                     ║
+// ╚══════════════════════════════════════════════╝
+
+model ScriptGeneration {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id])
+  genre       String
+  characters  String   @db.Text
+  setting     String
+  conflict    String   @db.Text
+  tone        String
+  output      String   @db.Text
+  paid        Boolean  @default(false)
+  paystackRef String?  @unique @map("paystack_ref")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@map("script_generations")
 }
