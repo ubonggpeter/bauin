@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -14,10 +15,12 @@ const config: Config = {
           dark: "#0E4A3D",
           light: "#2B8A72",
         },
-        "bg-light": "#F5F7F6",
-        gold: "#F0B429",
-        "text-dark": "#1A1A2E",
-        border: "#E0E0E0",
+        // Semantic tokens — resolved by CSS vars so they auto-switch in dark mode
+        "bg-light": "var(--color-bg)",
+        gold: "#F0B429",           // same in both modes per spec
+        "text-dark": "var(--color-text)",
+        border: "var(--color-border)",
+        card: "var(--color-card)", // white in light, #1A3028 in dark
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],

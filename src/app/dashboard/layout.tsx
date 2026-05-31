@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import SupportWidget from "@/components/SupportWidget";
+import { useTheme } from "@/context/ThemeContext";
 
 // Items shown in the mobile bottom tab bar (≤5 to fit 375 px)
 const MOBILE_TAB_LABELS = ["Home", "Explore", "Compete", "Wallet", "Profile"];
@@ -166,6 +167,74 @@ const NAV = [
   },
 ];
 
+function ThemeSidebarButton({ collapsed }: { collapsed: boolean }) {
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "dark";
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-primary-light hover:text-white hover:bg-white/10 transition-colors text-sm w-full ${
+        collapsed ? "justify-center" : ""
+      }`}
+    >
+      {isDark ? (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1"  x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22"   x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1"  y1="12" x2="3"  y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78"  x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64"  x2="19.78" y2="4.22" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      )}
+      {!collapsed && <span>{isDark ? "Light mode" : "Dark mode"}</span>}
+    </button>
+  );
+}
+
+function MobileThemeButton() {
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "dark";
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      className="flex flex-col items-center justify-center gap-0.5 px-3 py-2 min-h-[56px] text-gray-400 hover:text-primary transition-colors"
+    >
+      {isDark ? (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1"  x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22"   x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1"  y1="12" x2="3"  y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78"  x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64"  x2="19.78" y2="4.22" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      )}
+      <span className="text-[10px] font-medium leading-none mt-0.5">
+        {isDark ? "Light" : "Dark"}
+      </span>
+    </button>
+  );
+}
+
 function CollapseIcon({ collapsed }: { collapsed: boolean }) {
   return (
     <svg
@@ -272,7 +341,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        {/* Collapse toggle + sign out */}
+        {/* Collapse toggle + theme + sign out */}
         <div className={`px-2 pb-4 flex flex-col gap-1 border-t border-white/10 pt-3 ${collapsed ? "items-center" : ""}`}>
           <button
             onClick={toggleCollapse}
@@ -283,6 +352,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <CollapseIcon collapsed={collapsed} />
             {!collapsed && <span>Collapse</span>}
           </button>
+
+          {/* Theme toggle — same visual treatment as Collapse / Sign Out */}
+          <ThemeSidebarButton collapsed={collapsed} />
+
           <button
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-primary-light hover:text-white hover:bg-white/10 transition-colors text-sm w-full ${
               collapsed ? "justify-center" : ""
@@ -327,6 +400,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </Link>
             );
           })}
+          {/* Theme toggle — compact icon in the tab bar */}
+          <MobileThemeButton />
         </div>
       </nav>
 

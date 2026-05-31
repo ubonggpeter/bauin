@@ -3,14 +3,21 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Light-mode tokens (referenced by Tailwind semantic colors) ── */
   :root {
-    --color-primary: #1A6659;
-    --color-primary-dark: #0E4A3D;
-    --color-primary-light: #2B8A72;
-    --color-bg-light: #F5F7F6;
-    --color-gold: #F0B429;
-    --color-text-dark: #1A1A2E;
+    --color-bg:     #F5F7F6;
+    --color-text:   #1A1A2E;
     --color-border: #E0E0E0;
+    --color-card:   #FFFFFF;
+  }
+
+  /* ── Dark-mode tokens ── */
+  html.dark {
+    --color-bg:     #0D1F1A;
+    --color-text:   #FFFFFF;
+    --color-border: #2A4A40;
+    --color-card:   #1A3028;
+    color-scheme: dark;
   }
 
   body {
@@ -23,4 +30,38 @@
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Global dark-mode surface overrides
+   html.dark gives enough specificity to win over Tailwind utilities without
+   needing !important. Gold (#F0B429) is intentionally excluded — it stays
+   the same in both modes per the design spec.
+──────────────────────────────────────────────────────────────────────────────*/
+
+/* Cards, inputs, modals, popovers, bottom bars */
+html.dark .bg-white {
+  background-color: var(--color-card);
+}
+
+/* Subtle section / chip backgrounds */
+html.dark .bg-gray-50  { background-color: #0f2920; }
+html.dark .bg-gray-100 { background-color: #132d23; }
+html.dark .bg-gray-200 { background-color: #1a3a2a; }
+
+/* Muted text — lighten so it stays legible on dark surfaces */
+html.dark .text-gray-600 { color: #94A3B8; }
+html.dark .text-gray-500 { color: #94A3B8; }
+html.dark .text-gray-400 { color: #64748B; }
+
+/* Placeholder text in inputs */
+html.dark input::placeholder,
+html.dark textarea::placeholder { color: #4A7060; }
+
+/* Native select arrow visibility */
+html.dark select { color-scheme: dark; }
+
+/* Focus ring offset on dark card surfaces */
+html.dark .ring-offset-white {
+  --tw-ring-offset-color: var(--color-card);
 }

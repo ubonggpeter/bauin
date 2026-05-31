@@ -5,6 +5,7 @@ import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistratio
 import InstallBanner from "@/components/pwa/InstallBanner";
 import PushManager from "@/components/pwa/PushManager";
 import { JsonLd } from "@/components/JsonLd";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -130,16 +131,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning prevents React mismatch warnings when the
+    // anti-flash script adds the 'dark' class before hydration.
+    <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Runs before first paint — avoids flash of wrong theme */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('bauin-theme');var p=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';if((t||p)==='dark')document.documentElement.classList.add('dark')}catch(e){}`,
+          }}
+        />
         <JsonLd data={organizationJsonLd} />
         <JsonLd data={websiteJsonLd} />
       </head>
       <body className={inter.className}>
-        {children}
-        <ServiceWorkerRegistration />
-        <InstallBanner />
-        <PushManager />
+        <ThemeProvider>
+          {children}
+          <ServiceWorkerRegistration />
+          <InstallBanner />
+          <PushManager />
+        </ThemeProvider>
       </body>
     </html>
   );
