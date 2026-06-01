@@ -36,7 +36,7 @@ type QueueItem = {
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const RULE_TYPES = [
-  "WITHDRAWAL", "INVESTMENT_REQUEST", "TOOL_POOL", "STORY_CREATE", "STORY_SUBMIT",
+  "WITHDRAWAL", "INVESTMENT_REQUEST", "TOOL_POOL", "STORY_CREATE", "STORY_SUBMIT", "STORY_SUBMISSION",
 ];
 
 const FIELDS = [
@@ -51,6 +51,7 @@ const FIELDS = [
   { value: "role",           label: "User Role" },
   { value: "accountAgeDays", label: "Account Age (days)" },
   { value: "capacity",       label: "Capacity" },
+  { value: "qualityScore",  label: "Quality Score (1–10)" },
 ];
 
 const OPERATORS = [
@@ -65,6 +66,89 @@ const OPERATORS = [
   { value: "contains",    label: "contains" },
   { value: "not_contains",label: "not contains" },
 ];
+
+// ── Quality Score Panel ───────────────────────────────────────────────────────
+
+type EpScore = {
+  episodeId:   string;
+  title:       string;
+  engagement?:  number;
+  clarity?:     number;
+  quizability?: number;
+  appropriate?: boolean;
+  overall?:     number;
+};
+
+function ScorePill({ value, label }: { value: number | undefined; label: string }) {
+  const color = value === undefined ? "bg-gray-100 text-gray-400"
+    : value >= 7 ? "bg-emerald-100 text-emerald-700"
+    : value >= 5 ? "bg-amber-100 text-amber-700"
+    : "bg-red-100 text-red-600";
+  return (
+    <div className={`flex flex-col items-center ${color} rounded-lg px-2.5 py-1.5 min-w-[46px]`}>
+      <span className="text-sm font-black tabular-nums leading-none">{value ?? "—"}</span>
+      <span className="text-[9px] font-semibold uppercase tracking-wide mt-0.5 leading-none">{label}</span>
+    </div>
+  );
+}
+
+function QualityPanel({ data }: { data: Record<string, unknown> }) {
+  const overall       = data.qualityScore as number | null | undefined;
+  const appropriate   = data.appropriate as boolean | undefined;
+  const episodeScores = (data.episodeScores ?? []) as EpScore[];
+
+  if (overall === undefined && episodeScores.length === 0) return null;
+
+  return (
+    <div className="mt-3 rounded-xl border border-border bg-gray-50 p-3 space-y-2.5">
+      {/* Summary row */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Content Quality</p>
+        <div className="flex items-center gap-2 flex-wrap">
+          {typeof overall === "number" && (
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+              overall >= 7 ? "bg-emerald-100 text-emerald-700"
+              : overall >= 5 ? "bg-amber-100 text-amber-700"
+              : "bg-red-100 text-red-600"
+            }`}>
+              Overall {overall}/10
+            </span>
+          )}
+          {appropriate === false && (
+            <span className="text-xs font-bold bg-red-100 text-red-700 px-2.5 py-1 rounded-full">
+              ⚠ Inappropriate content
+            </span>
+          )}
+          {appropriate === true && typeof overall === "number" && overall >= 7 && (
+            <span className="text-xs font-bold bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full">
+              ✓ Passes quality gate
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Per-episode rows */}
+      {episodeScores.map((ep) => (
+        <div key={ep.episodeId} className="bg-white rounded-xl border border-border px-3 py-2.5">
+          <p className="text-xs font-semibold text-gray-700 mb-2 truncate">{ep.title}</p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <ScorePill value={ep.engagement}  label="Engage" />
+            <ScorePill value={ep.clarity}     label="Clarity" />
+            <ScorePill value={ep.quizability} label="Quiz" />
+            <ScorePill value={ep.overall}     label="Overall" />
+            {ep.appropriate === false && (
+              <span className="ml-1 text-[11px] font-bold bg-red-100 text-red-700 px-2 py-1 rounded-lg">
+                Inappropriate
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── ─────────────────────────────────────────────────────────────────────────
 
 function blankCondition(): Condition {
   return { field: "amount", operator: "lte", value: "" };
@@ -649,7 +733,12 @@ export default function AdminApprovalsPage() {
                         {/* Request data summary */}
                         <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1">
                           {Object.entries(data)
-                            .filter(([, v]) => v !== null && v !== undefined && String(v).length > 0)
+                            .filter(([k, v]) =>
+                              v !== null && v !== undefined &&
+                              !["episodeScores", "description"].includes(k) &&
+                              !Array.isArray(v) &&
+                              String(v).length > 0
+                            )
                             .slice(0, 6)
                             .map(([k, v]) => (
                               <div key={k} className="text-xs">
@@ -662,6 +751,9 @@ export default function AdminApprovalsPage() {
                               </div>
                             ))}
                         </div>
+
+                        {/* Quality score panel — only for story submissions */}
+                        {item.requestType === "STORY_SUBMISSION" && <QualityPanel data={data} />}
 
                         <p className="text-[11px] text-gray-400 mt-2">
                           Submitted {new Date(item.createdAt).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" })}

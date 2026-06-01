@@ -580,6 +580,7 @@ model Episode {
   gameContentJson Json     @map("game_content_json")
   isFree          Boolean  @default(false) @map("is_free")
   price           Decimal  @default(0) @db.Decimal(18, 2)
+  qualityScore    Json?    @map("quality_score")
   isPublished     Boolean  @default(false) @map("is_published")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
