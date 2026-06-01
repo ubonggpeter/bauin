@@ -126,6 +126,12 @@ enum WithdrawalStatus {
   CANCELLED
 }
 
+enum TournamentStatus {
+  UPCOMING
+  LIVE
+  ENDED
+}
+
 enum InvestmentRequestStatus {
   PENDING
   APPROVED
@@ -255,6 +261,8 @@ model User {
   storyCollaborations    StoryCollaborator[] @relation("StoryCollaborations")
   subscriptions          SellerSubscription[] @relation("SubscriberSubscriptions")
   subscribers            SellerSubscription[] @relation("SellerSubscribers")
+  tournamentEntries      TournamentEntry[]
+  tournamentBets         TournamentBet[]
 
   @@index([referredById])
   @@index([referralCode])
@@ -650,8 +658,9 @@ model QuizSession {
   endedAt                 DateTime?              @map("ended_at")
   createdAt               DateTime               @default(now()) @map("created_at")
 
-  entries QuizEntry[]
-  bets    Bet[]
+  entries     QuizEntry[]
+  bets        Bet[]
+  tournaments Tournament[]
 
   @@index([distributorCollectionId])
   @@map("quiz_sessions")
@@ -1324,4 +1333,66 @@ model BundlePurchase {
   @@index([userId])
   @@index([bundleId])
   @@map("bundle_purchases")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║              TOURNAMENTS                     ║
+// ╚══════════════════════════════════════════════╝
+
+model Tournament {
+  id            String           @id @default(cuid())
+  name          String
+  description   String?          @db.Text
+  entryFee      Decimal          @db.Decimal(18, 2) @map("entry_fee")
+  prizePool     Decimal          @db.Decimal(18, 2) @map("prize_pool")
+  quizSessionId String           @map("quiz_session_id")
+  quizSession   QuizSession      @relation(fields: [quizSessionId], references: [id])
+  date          DateTime
+  status        TournamentStatus @default(UPCOMING)
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  entries TournamentEntry[]
+  bets    TournamentBet[]
+
+  @@index([status])
+  @@index([date])
+  @@map("tournaments")
+}
+
+// One entry per user per tournament (paid entry)
+model TournamentEntry {
+  id           String     @id @default(cuid())
+  tournamentId String     @map("tournament_id")
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  userId       String     @map("user_id")
+  user         User       @relation(fields: [userId], references: [id])
+  paystackRef  String     @map("paystack_ref")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId])
+  @@index([userId])
+  @@map("tournament_entries")
+}
+
+// One bet per user per tournament; predictedIds = [userId1, userId2, userId3] (predicted Top 3)
+model TournamentBet {
+  id           String     @id @default(cuid())
+  tournamentId String     @map("tournament_id")
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  userId       String     @map("user_id")
+  user         User       @relation(fields: [userId], references: [id])
+  predictedIds Json       @map("predicted_ids")
+  stake        Decimal    @db.Decimal(18, 2)
+  paystackRef  String     @map("paystack_ref")
+  payout       Decimal?   @db.Decimal(18, 2)
+  settled      Boolean    @default(false)
+  settledAt    DateTime?  @map("settled_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId])
+  @@index([userId])
+  @@map("tournament_bets")
 }
