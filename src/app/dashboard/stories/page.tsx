@@ -398,15 +398,28 @@ export default function StoriesPage() {
           <h1 className="text-2xl font-bold text-text-dark">Story Market</h1>
           <p className="text-sm text-gray-500 mt-1">Discover stories, earn royalties when you share</p>
         </div>
-        <Link
-          href="/dashboard/stories/create"
-          className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary-dark transition-colors shadow-sm"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-4 h-4">
-            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Create Story
-        </Link>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Link
+            href="/dashboard/seller/analytics"
+            className="flex items-center gap-1.5 px-3 py-2.5 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:border-primary/50 hover:text-primary transition-colors"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+              <rect x="3" y="11" width="3" height="10" rx="1"/>
+              <rect x="9" y="7" width="3" height="14" rx="1"/>
+              <rect x="15" y="3" width="3" height="18" rx="1"/>
+            </svg>
+            Analytics
+          </Link>
+          <Link
+            href="/dashboard/stories/create"
+            className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary-dark transition-colors shadow-sm"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-4 h-4">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Create Story
+          </Link>
+        </div>
       </div>
 
       {/* Bundle marketplace section */}
