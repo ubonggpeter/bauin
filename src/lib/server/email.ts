@@ -1,5 +1,7 @@
 import sgMail from "@sendgrid/mail";
 
+
+
 export async function sendReferralUnlockedEmail(
   to: string,
   name: string,
@@ -304,6 +306,48 @@ export async function sendReferralExpiryEmail(
               Share your referral link to add new members and keep earning 10% lifetime bonuses.
             </p>
             <a href="${APP_URL}/dashboard/network" style="display:inline-block;background:#1A6659;color:white;font-weight:bold;padding:12px 28px;border-radius:999px;text-decoration:none;font-size:14px;margin-top:8px;">Share Referral Link →</a>
+          </div>
+        </div>
+      `,
+    });
+  } catch { /* non-critical */ }
+}
+
+export async function sendAnnouncementEmail(
+  to: string,
+  name: string,
+  title: string,
+  body: string,
+  type: "INFO" | "WARNING" | "PROMOTION",
+): Promise<void> {
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) return;
+  sgMail.setApiKey(apiKey);
+
+  const accentColor =
+    type === "WARNING"   ? "#F97316" :
+    type === "PROMOTION" ? "#F0B429" :
+                           "#1A6659";
+  const icons: Record<string, string> = { INFO: "📢", WARNING: "⚠️", PROMOTION: "🎉" };
+  const icon = icons[type] ?? "📢";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://bauin.com";
+
+  try {
+    await sgMail.send({
+      to,
+      from: process.env.EMAIL_FROM ?? "noreply@bauin.com",
+      subject: `${icon} ${title}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#f5f7f6;padding:20px;">
+          <div style="background:linear-gradient(135deg,#1A6659,#0E4A3D);padding:32px;text-align:center;border-radius:16px 16px 0 0;">
+            <h1 style="color:#F0B429;margin:0 0 4px;font-size:28px;letter-spacing:2px;">BAUIN</h1>
+            <p style="color:rgba(255,255,255,0.65);margin:0;font-size:12px;letter-spacing:1px;">BILLIONAIRES AI USERS INCOME NETWORK</p>
+          </div>
+          <div style="background:white;padding:36px 32px;border-radius:0 0 16px 16px;border:1px solid #e0e0e0;border-top:none;">
+            <div style="display:inline-block;background:${accentColor};color:white;font-size:12px;font-weight:700;letter-spacing:.08em;padding:4px 12px;border-radius:999px;margin-bottom:16px;text-transform:uppercase;">${type}</div>
+            <h2 style="color:#1A1A2E;margin:0 0 16px;">${icon} ${title}</h2>
+            <div style="color:#444;font-size:15px;line-height:1.7;border-left:4px solid ${accentColor};padding-left:16px;">${body}</div>
+            <a href="${appUrl}/dashboard" style="display:inline-block;margin-top:28px;background:${accentColor};color:white;font-weight:bold;padding:12px 28px;border-radius:999px;text-decoration:none;font-size:14px;">Go to Dashboard →</a>
           </div>
         </div>
       `,

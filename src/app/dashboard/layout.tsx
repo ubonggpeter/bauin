@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import SupportWidget from "@/components/SupportWidget";
 import { useTheme } from "@/context/ThemeContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import AnnouncementBanners from "@/components/AnnouncementBanners";
 
 // Items shown in the mobile bottom tab bar (≤5 to fit 375 px)
 const MOBILE_TAB_LABELS = ["Home", "Explore", "Compete", "Wallet", "Profile"];
@@ -386,6 +387,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           collapsed ? "lg:ml-16" : "lg:ml-64"
         }`}
       >
+        <AnnouncementBanners />
         {children}
       </main>
 

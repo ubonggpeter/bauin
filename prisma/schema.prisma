@@ -38,6 +38,20 @@ enum KycStatus {
   REJECTED
 }
 
+enum AnnouncementType {
+  INFO
+  WARNING
+  PROMOTION
+}
+
+enum AnnouncementTarget {
+  ALL
+  WORKERS
+  SELLERS
+  DISTRIBUTORS
+  VIEWERS
+}
+
 enum FraudFlagType {
   RAPID_ANSWERS       // any answer submitted under 0.8 s
   SAME_IP_QUIZ_REPLAY // same IP joins same quiz 3+ times in one day
@@ -1156,6 +1170,26 @@ model JobApplication {
   @@index([jobId])
   @@index([workerId])
   @@map("job_applications")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║            ANNOUNCEMENTS                     ║
+// ╚══════════════════════════════════════════════╝
+
+model Announcement {
+  id          String             @id @default(cuid())
+  title       String
+  body        String             @db.Text
+  type        AnnouncementType
+  target      AnnouncementTarget @default(ALL)
+  expiresAt   DateTime?          @map("expires_at")
+  sentAt      DateTime?          @map("sent_at")
+  createdById String             @map("created_by_id")
+  createdAt   DateTime           @default(now()) @map("created_at")
+
+  @@index([type])
+  @@index([expiresAt])
+  @@map("announcements")
 }
 
 // ╔══════════════════════════════════════════════╗
