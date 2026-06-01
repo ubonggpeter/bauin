@@ -1,0 +1,256 @@
+{
+  "Quiz": {
+    "liveSession": "ÌJÒ ÌDÁNWÒ ALÀ-ỌGBỌ́N",
+    "playersJoined": "Àwọn Eré tó Darapọ̀",
+    "gamePhases": "Ìpele Eré",
+    "livePrizePool": "Ẹ̀bùn Alààyè",
+    "prizeGrows": "Ń pọ̀ sí i pẹ̀lú ẹni tó máa ń darapọ̀ mọ́",
+    "startsIn": "Bẹ̀rẹ̀ ní",
+    "statusEnded": "Parí",
+    "statusActive": "Ń Ṣiṣẹ́",
+    "statusComingSoon": "Ń Bọ̀",
+    "hostedBy": "Alámọ̀dájú: {name}",
+    "joining": "Ń darapọ̀…",
+    "playNow": "Jẹ Eré Báyìí",
+    "placeBet": "Fi Tẹ́tẹ́ Sí",
+    "sessionEnded": "Ìjókòó yìí ti parí.",
+    "startingSoon": "Fẹ́ bẹ̀rẹ̀ kíákíá…",
+    "notAvailable": "Kò sí síbẹ̀ rí",
+    "playersCompeting": "{count, plural, =0 {Jẹ ẹni àkọ́kọ́ tó dapọ̀!} one {# eré tó ń dije} other {# àwọn eré tó ń dije}}",
+    "betPlaced": "Tẹ́tẹ́ ti fi! Orí ṣẹ 🎯",
+    "signInToBet": "Wọlé láti fi tẹ́tẹ́",
+    "phases": {
+      "flash": "Ìmọ̀ Kíkánra",
+      "memory": "Ìrántí",
+      "sequence": "Ìtò",
+      "fillGap": "Fọ́ Àárín",
+      "trueFalse": "Òtítọ́/Irọ́"
+    },
+    "referral": {
+      "title": "Pe Àwọn Ọ̀rẹ́ · Gba Ẹ̀bùn",
+      "copy": "Daakọ",
+      "copied": "✓",
+      "playersJoined": "{count, plural, one {# eré tó darapọ̀} other {# àwọn eré tó darapọ̀}}",
+      "goal": "Àfojúsùn: {n}",
+      "morePlayers": "{n} eré síi kó ẹ̀bùn lè pọ̀ sídúpọ̀ 🔥",
+      "shareLink": "Pín Àsopọ̀ Ìdánwò"
+    },
+    "bet": {
+      "titleType": "Fi Tẹ́tẹ́ Sí",
+      "titlePick": "Yan {n} Eré",
+      "titleStake": "Jẹ́rìí Ìdókówò",
+      "chooseBetType": "Yan irú tẹ́tẹ́ rẹ",
+      "selectedOf": "{sel}/{total} yàn",
+      "typeAndBonus": "{label} · {bonus}",
+      "higherRisk": "Ewu tó ga, ere tó ga. Yan àwọn olubori rẹ.",
+      "predictPlayers": "Sọ àsọtẹ́lẹ̀ fún {n} {n, plural, one {eré} other {àwọn eré}} tó máa wà ní orí {n}",
+      "win": "Gba",
+      "multiplierStake": "{mult}× ìdókówò",
+      "betsAreFinal": "Tẹ́tẹ́ kò ní padà lẹ́yìn ìdáníṣẹ́ ìsanwó",
+      "selectExactly": "Yan gangan {n} {n, plural, one {eré} other {àwọn eré}} tó o rò pé wọ́n máa wà ní orí {n}",
+      "continue": "Tẹ̀síwájú →",
+      "betType": "Irú tẹ́tẹ́",
+      "predictedPlayers": "Àwọn eré tó yàn",
+      "nSelected": "{n} yàn",
+      "yourStake": "Ìdókówò Rẹ",
+      "minimumStake": "Ó kéré jù ₦100",
+      "minimumStakeError": "Ìdókówò tó kéré jùlọ jẹ ₦100",
+      "potentialWin": "Ere tó ṣeéṣe",
+      "potentialWinDetail": "₦{stake} × {mult} = ₦{total} tí o bá gba",
+      "confirming": "Ń jẹ́rìí…",
+      "payViaPaystack": "Sanwó ₦{amount} nípa Paystack",
+      "payEmpty": "Sanwó ₦— nípa Paystack"
+    }
+  },
+  "GamePlay": {
+    "phaseOf": "Ìpele {n}/5",
+    "phaseNames": {
+      "1": "Ìmọ̀ Kíkánra",
+      "2": "Ìrántí",
+      "3": "Ìtò",
+      "4": "Fọ́ Àárín",
+      "5": "Òtítọ́/Irọ́"
+    },
+    "phaseFullNames": {
+      "1": "Àwọn Kárọ̀ Ìmọ̀",
+      "2": "Ìtọ́pọ̀ Ìrántí",
+      "3": "Ìtò",
+      "4": "Fọ́ Àárín",
+      "5": "Òtítọ́ / Irọ́"
+    },
+    "phaseComplete": "Ìpele {n} Parí",
+    "youScored": "O gba",
+    "outOf100": "nínú 100 àmì",
+    "nextPhase": "Ìpele {n} →",
+    "seeResults": "Wo Àbájáde",
+    "getReady": "Ṣe Ìmúrasílẹ̀",
+    "phases500": "Ìpele 5 · 500 àmì tó pọ̀ jùlọ",
+    "go": "LỌ!",
+    "loadingGame": "Ń gbé eré wọlé…",
+    "saving": "Ń pamọ́…",
+    "flash": {
+      "cardOf": "Kárọ̀ {n} nínú {total}",
+      "term": "Ọ̀rọ̀",
+      "definition": "Àlàyé",
+      "memorize": "Kọ àlàyé náà sínú ọkàn",
+      "remember": "Rántí ọ̀rọ̀ yìí…"
+    },
+    "memory": {
+      "title": "Ìtọ́pọ̀ Ìrántí",
+      "pairsFound": "{found}/{total} àwọn tọkọtaya rí"
+    },
+    "sequence": {
+      "title": "Tò ní Ìtò",
+      "instruction": "Fà tàbí tẹ méjì lati pààrọ̀ wọn",
+      "checking": "Ń ṣayẹwo…",
+      "submit": "Firanṣẹ Ìtò"
+    },
+    "fillGap": {
+      "correctSoFar": "{n} tó tọ̀ títí dásìkò yìí"
+    },
+    "trueFalse": {
+      "true": "ÒTÍTỌ́",
+      "false": "IRỌ́",
+      "correct": "✓ Ọ̀tọ̀!",
+      "wrong": "✗ Ìdáhùn náà jẹ {answer}"
+    },
+    "winner": {
+      "youWon": "O GBORÍ",
+      "firstPlace": "🥇 Ipò Àkọ́kọ́",
+      "finished1st": "O parí ní ipò àkọ́kọ́!",
+      "pointsMax": "àmì · Tó pọ̀ jùlọ: 500",
+      "viewResults": "Wo Àbájáde Pàtàpàtà"
+    },
+    "savePrompt": {
+      "title": "Pamọ́ ere rẹ!",
+      "desc": "O gba {total}/500 — ṣẹ àkọọ́lẹ̀ ọ̀fẹ́ láti tọ̀ún ìlọsíwájú rẹ.",
+      "cta": "Ṣẹ àkọọ́lẹ̀ ọ̀fẹ́ →",
+      "note": "Kò nílò ìsanwó · Gba ìṣẹ́jú àárọ̀ 30"
+    },
+    "results": {
+      "gameComplete": "Eré Parí",
+      "rankOf": "Ipò {rank} nínú {total} {total, plural, one {eré} other {àwọn eré}}",
+      "shareResult": "Pín Àbájáde",
+      "backToLobby": "Padà sí Ibi Ìdákẹ́jẹ́ẹ́",
+      "excellent": "Ẹ̀wà!",
+      "goodJob": "Dára ṣe!",
+      "keepPractising": "Máa ń ṣe ìdánrawò!",
+      "correctSoFar": "{n} tó tọ̀ títí dásìkò yìí"
+    }
+  },
+  "Landing": {
+    "nav": {
+      "howItWorks": "Bí Ó Ṣe Ń Ṣiṣẹ́",
+      "categories": "Àwọn Ẹ̀ka",
+      "referral": "Ìtọ́kasí",
+      "pricing": "Ìdíye",
+      "blog": "Àkọsílẹ̀",
+      "affiliate": "Alábàápàdé",
+      "signIn": "Wọlé",
+      "registerNow": "Forúkọsílẹ̀ Báyìí"
+    },
+    "hero": {
+      "badge": "Nẹtíwọọkì Ọrọ̀ Àìkọ́gbọ́n #1 Áfíríkà",
+      "title1": "Yí Ìmọ̀ AI sí",
+      "title2": "Owó Gidi",
+      "desc": "Darapọ̀ mọ́ 50,000+ àwọn ará Nàìjíríà tó ń gba ₦50,000–₦500,000/oṣù nípasẹ̀ àwọn iṣẹ́ AI tó fọwọ́ sí, ìtọ́kasí, àwọn ìdánwò, àti àkójọpọ̀ ìdókówò.",
+      "cta": "Bẹ̀rẹ̀ Gba Owó Ọ̀fẹ́",
+      "watchDemo": "Wo Àpẹẹrẹ",
+      "statsLabel": "Àwọn ará Nàìjíríà tó ń gba owó lójoojúmọ́"
+    },
+    "stats": {
+      "activeMembers": "Àwọn Ọmọ Ẹgbẹ́ Tó Ṣiṣẹ́",
+      "earningsPaid": "Owó Tí Á Sanwó",
+      "incomeCategories": "Àwọn Ẹ̀ka Ọrọ̀",
+      "statesCovered": "Àwọn Ìpínlẹ̀ Tó Wà"
+    },
+    "howItWorks": {
+      "title": "Bẹ̀rẹ̀ Gba Owó ní Ìgbésẹ̀ 4",
+      "subtitle": "Darapọ̀ mọ́ ẹgbẹẹgbẹ̀rún àwọn ará Nàìjíríà tó ti ń gba owó pẹ̀lú AI"
+    },
+    "steps": {
+      "register": "Forúkọsílẹ̀ & Yan",
+      "registerDesc": "Forúkọsílẹ̀ kí o sì yan ẹ̀ka ọrọ̀ rẹ dáa lórí ìmọ̀ àti ìfẹ́ rẹ.",
+      "certify": "Gba Ìfọwọ́sí",
+      "certifyDesc": "Parí ìdánwò ìfọwọ́sí kúkúrú láti fi hàn ìgbọ́kànlé rẹ kí o sì mí àánú kíkún.",
+      "tools": "Wọlé sí Àwọn Irinṣẹ́ AI",
+      "toolsDesc": "Gba àánú kíkún sí àwọn irinṣẹ́ tó ní agbára AI, àwọn iṣẹ́ gidi, àti àwọn àǹfààní ọrọ̀ lójoojúmọ́.",
+      "earn": "Gba Owó & Dàgbà",
+      "earnDesc": "Gba owó láti àwọn iṣẹ́, ìdánwò, ìtọ́kasí, àti tẹ́tẹ́. Gba ẹgbẹ́ rẹ dàgbà fún owó àìṣiṣẹ́."
+    },
+    "categories": {
+      "sectionTitle": "Àwọn Ẹ̀ka Ọrọ̀ 7 Tó Fìdí Múlẹ̀",
+      "sectionSubtitle": "Yan ọkàn, díẹ̀, tàbí gbogbo rẹ — àkójọ fún ọrọ̀ tó pọ̀ jùlọ",
+      "popular": "Gbajúmọ̀",
+      "getStarted": "Bẹ̀rẹ̀ →"
+    },
+    "pricing": {
+      "sectionTitle": "Ìdíye Tó Rọrùn, Tó Wọ̀pọ̀",
+      "sectionSubtitle": "Kò sí ìsanwó oṣù — sanwó ẹẹkàn, gba owó títí láé",
+      "mostPopular": "Gbajúmọ̀ Jùlọ",
+      "getStarted": "Bẹ̀rẹ̀ pẹ̀lú {plan}",
+      "allPlansInclude": "Gbogbo ètò pẹ̀lú"
+    },
+    "footer": {
+      "tagline": "Nẹtíwọọkì Ọrọ̀ Àìkọ́gbọ́n #1 Áfíríkà",
+      "rights": "© 2025 BAUIN. Gbogbo ẹtọ̀ wà.",
+      "privacy": "Ìkọ̀kọ̀",
+      "terms": "Àwọn Ìlànà",
+      "contact": "Kàn sí"
+    }
+  },
+  "Register": {
+    "aiIncomeNetwork": "Nẹtíwọọkì Ọrọ̀ AI",
+    "stepAccount": "Àkọọ́lẹ̀",
+    "stepCategories": "Àwọn Ẹ̀ka",
+    "tips": {
+      "1": "Ẹ̀ka kọ̀ọ̀kan ṣí irinṣẹ́ AI tó yàtọ̀",
+      "2": "Gba owó láti àwọn iṣẹ́ ojoojúmọ́, ìdánwò & ìtọ́kasí",
+      "3": "Ẹ̀yọ ìṣàǹfààní nígbà tí o bá yan gbogbo ẹ̀ka 7",
+      "4": "Àánú ọjọ́ 30 — a lè mọ̀ ó padà látinú dashboard rẹ"
+    },
+    "benefits": {
+      "aiStreams": "Àwọn ìṣàn ọrọ̀ AI tó ń ṣiṣẹ́ 24 / 7",
+      "referralCommission": "50% ẹ̀bùn ìtọ́kasí lórí gbogbo forúkọsílẹ̀",
+      "dashboard": "Ìwòran ọrọ̀ gidi àti ìwádìí ìgbà gidi",
+      "aiTools": "Àwọn irinṣẹ́ AI àti àánú ìfọwọ́sí àdédé",
+      "investment": "Àkójọpọ̀ ìdókówò pẹ̀lú àpadà tó tọ̀",
+      "withdrawals": "Gbíná ìdájọ́ wallet ní ọjọ́ kan, kò sí ìdíye tó farapamọ́"
+    },
+    "account": {
+      "title": "Ṣẹ Àkọọ́lẹ̀ Rẹ",
+      "subtitle": "Darapọ̀ mọ́ 50,000+ àwọn ará Nàìjíríà tó ń gba owó pẹ̀lú AI",
+      "fullName": "Orúkọ kíkún",
+      "email": "Àdírẹ́ẹ̀sì ìméèlì",
+      "password": "Ọ̀rọ̀ àṣírí",
+      "referralCode": "Kóòdù ìtọ́kasí (kò ṣe dandan)",
+      "createAccount": "Ṣẹ Àkọọ́lẹ̀",
+      "creating": "Ń ṣẹ…",
+      "alreadyHave": "Ṣé o ti ní àkọọ́lẹ̀?",
+      "signIn": "Wọlé"
+    },
+    "categories": {
+      "title": "Yan Àwọn Ẹ̀ka Ọrọ̀ Rẹ",
+      "subtitle": "Yan àwọn ìmọ̀ AI tí o fẹ́ fún owó",
+      "bundleLabel": "Yan gbogbo 7 — Àfipamọ́ ₦{discount}",
+      "bundleNote": "Iye tó dára jùlọ: ₦{price} dípò ₦{full}",
+      "nSelected": "{n, plural, one {# ẹ̀ka} other {# àwọn ẹ̀ka}} tí a yàn",
+      "fee": "₦{fee} forúkọsílẹ̀",
+      "monthlyRange": "₦{min}–₦{max}/oṣù",
+      "orderSummary": "Àkọsílẹ̀ Àṣẹ",
+      "subtotal": "Àpapọ̀",
+      "bundleDiscount": "Ìṣàǹfààní àkójọ",
+      "total": "Àpapọ̀ Àpẹẹrẹ",
+      "proceed": "Tẹ̀síwájú sí Ìsanwó",
+      "processing": "Ń ṣe àtúpalẹ̀…",
+      "noCategories": "Jọ̀wọ́ yan ẹ̀ka kan tó kéré jùlọ"
+    }
+  },
+  "LanguageSwitcher": {
+    "label": "Èdè",
+    "en": "English",
+    "yo": "Yorùbá",
+    "ha": "Hausa",
+    "ig": "Igbo"
+  }
+}

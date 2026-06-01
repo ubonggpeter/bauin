@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { usePaystackPayment } from "react-paystack";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 
 // ── Types ──────────────────────────────────────────────────────────
 type Player = { id: string; userId: string; name: string };
@@ -79,6 +80,7 @@ function BettingSheet({
   players: Player[]; sessionId: string; sessionCode: string;
   userEmail: string; onClose: () => void; onSuccess: () => void;
 }) {
+  const t = useTranslations("Quiz.bet");
   const [step,        setStep]        = useState<BetStep>("type");
   const [betType,     setBetType]     = useState<BetTypeId | null>(null);
   const [selected,    setSelected]    = useState<Set<string>>(new Set());
@@ -132,7 +134,7 @@ function BettingSheet({
 
   async function handlePay() {
     if (!betType || selected.size !== chosenType!.picks) return;
-    if (stakeNum < 100) { setError("Minimum stake is ₦100"); return; }
+    if (stakeNum < 100) { setError(t("minimumStakeError")); return; }
     setError("");
     initPayment({
       onSuccess: async (tx: { reference: string }) => {
@@ -218,10 +220,10 @@ function BettingSheet({
             )}
             <div>
               <h3 className="font-bold text-text-dark text-base leading-none">
-                {step === "type" ? "Place a Bet" : step === "players" ? `Pick ${chosenType?.picks} Players` : "Confirm Stake"}
+                {step === "type" ? t("titleType") : step === "players" ? t("titlePick", { n: chosenType?.picks ?? 0 }) : t("titleStake")}
               </h3>
               <p className="text-xs text-gray-400 mt-0.5">
-                {step === "type" ? "Choose your bet type" : step === "players" ? `${selected.size}/${chosenType?.picks} selected` : `${chosenType?.label} · ${chosenType?.bonus}`}
+                {step === "type" ? t("chooseBetType") : step === "players" ? t("selectedOf", { sel: selected.size, total: chosenType?.picks ?? 0 }) : t("typeAndBonus", { label: chosenType?.label ?? "", bonus: chosenType?.bonus ?? "" })}
               </p>
             </div>
           </div>
@@ -245,25 +247,25 @@ function BettingSheet({
         {/* ── Step 1: Bet type cards ── */}
         {step === "type" && (
           <div className="flex-1 overflow-y-auto px-5 pb-6">
-            <p className="text-xs text-gray-400 mb-3 mt-1">Higher risk = higher reward. Pick predicted top finishers.</p>
+            <p className="text-xs text-gray-400 mb-3 mt-1">{t("higherRisk")}</p>
             <div className="grid grid-cols-2 gap-3">
-              {BET_TYPES.map((t) => (
-                <button key={t.id} onClick={() => { setBetType(t.id); setSelected(new Set()); setStep("players"); }}
+              {BET_TYPES.map((bt) => (
+                <button key={bt.id} onClick={() => { setBetType(bt.id); setSelected(new Set()); setStep("players"); }}
                   className="rounded-2xl p-4 text-left transition-all active:scale-95 hover:scale-[1.02]"
-                  style={{ background: t.color }}>
+                  style={{ background: bt.color }}>
                   <div className="flex items-start justify-between mb-3">
-                    <span className="text-white font-black text-lg leading-none">{t.label}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-white/20 text-white text-xs font-bold">{t.bonus}</span>
+                    <span className="text-white font-black text-lg leading-none">{bt.label}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-white/20 text-white text-xs font-bold">{bt.bonus}</span>
                   </div>
-                  <p className="text-white/70 text-xs mb-3">Predict {t.picks} player{t.picks > 1 ? "s" : ""} to finish top {t.picks}</p>
+                  <p className="text-white/70 text-xs mb-3">{t("predictPlayers", { n: bt.picks })}</p>
                   <div className="flex items-center gap-1">
-                    <span className="text-white/60 text-[10px]">Win</span>
-                    <span className="text-white font-black text-sm">{t.multiplier}× stake</span>
+                    <span className="text-white/60 text-[10px]">{t("win")}</span>
+                    <span className="text-white font-black text-sm">{t("multiplierStake", { mult: bt.multiplier })}</span>
                   </div>
                 </button>
               ))}
             </div>
-            <p className="text-center text-xs text-gray-400 mt-4">Bets are final once payment is confirmed</p>
+            <p className="text-center text-xs text-gray-400 mt-4">{t("betsAreFinal")}</p>
           </div>
         )}
 
@@ -272,7 +274,7 @@ function BettingSheet({
           <div className="flex-1 overflow-y-auto">
             <div className="px-5 py-2 bg-gold/5 border-b border-gold/15">
               <p className="text-xs text-amber-700 font-medium">
-                Select exactly {chosenType.picks} player{chosenType.picks > 1 ? "s" : ""} you think will finish in the top {chosenType.picks}
+                {t("selectExactly", { n: chosenType.picks })}
               </p>
             </div>
             <div className="divide-y divide-gray-50">
@@ -305,7 +307,7 @@ function BettingSheet({
                 disabled={selected.size !== chosenType.picks}
                 className="w-full py-3.5 rounded-2xl font-bold text-text-dark disabled:opacity-40 transition-all"
                 style={{ background: selected.size === chosenType.picks ? "linear-gradient(135deg,#F0B429,#d4981e)" : "#e5e7eb" }}>
-                Continue →
+                {t("continue")}
               </button>
             </div>
           </div>
@@ -317,12 +319,12 @@ function BettingSheet({
             {/* Summary */}
             <div className="rounded-2xl p-4 mt-3 mb-4" style={{ background: "rgba(26,102,89,0.06)" }}>
               <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-500">Bet type</span>
+                <span className="text-gray-500">{t("betType")}</span>
                 <span className="font-semibold text-text-dark">{chosenType.label} <span className="text-green-600">{chosenType.bonus}</span></span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Predicted players</span>
-                <span className="font-semibold text-text-dark">{selected.size} selected</span>
+                <span className="text-gray-500">{t("predictedPlayers")}</span>
+                <span className="font-semibold text-text-dark">{t("nSelected", { n: selected.size })}</span>
               </div>
             </div>
 
@@ -340,7 +342,7 @@ function BettingSheet({
             </div>
 
             {/* Stake input */}
-            <label className="block text-sm font-semibold text-text-dark mb-2">Your Stake</label>
+            <label className="block text-sm font-semibold text-text-dark mb-2">{t("yourStake")}</label>
             <div className="flex items-center border-2 rounded-2xl overflow-hidden mb-1 focus-within:border-gold transition-colors" style={{ borderColor: "#e5e7eb" }}>
               <span className="px-4 text-lg font-black text-gold bg-gold/5 self-stretch flex items-center">₦</span>
               <input
@@ -352,17 +354,17 @@ function BettingSheet({
                 className="flex-1 px-3 py-4 text-lg font-bold text-text-dark outline-none bg-white"
               />
             </div>
-            <p className="text-xs text-gray-400 mb-4">Minimum ₦100</p>
+            <p className="text-xs text-gray-400 mb-4">{t("minimumStake")}</p>
 
             {/* Potential win */}
             {stakeNum >= 100 && (
               <div className="rounded-2xl p-4 mb-4 border border-gold/30 bg-gold/5">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Potential win</span>
+                  <span className="text-sm text-gray-600">{t("potentialWin")}</span>
                   <span className="text-xl font-black text-gold">₦{potentialWin.toLocaleString()}</span>
                 </div>
                 <p className="text-xs text-gray-400 mt-1">
-                  ₦{stakeNum.toLocaleString()} × {chosenType.multiplier} = ₦{potentialWin.toLocaleString()} if you win
+                  {t("potentialWinDetail", { stake: stakeNum.toLocaleString(), mult: chosenType.multiplier, total: potentialWin.toLocaleString() })}
                 </p>
               </div>
             )}
@@ -382,7 +384,7 @@ function BettingSheet({
                   <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
                     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeDashoffset="10"/>
                   </svg>
-                  Confirming…
+                  {t("confirming")}
                 </>
               ) : (
                 <>
@@ -390,7 +392,7 @@ function BettingSheet({
                     <path d="M21 18v1a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v1"/>
                     <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
                   </svg>
-                  Pay ₦{stakeNum > 0 ? stakeNum.toLocaleString() : "—"} via Paystack
+                  {stakeNum > 0 ? t("payViaPaystack", { amount: stakeNum.toLocaleString() }) : t("payEmpty")}
                 </>
               )}
             </button>
@@ -405,6 +407,7 @@ function BettingSheet({
 // VIEWER REFERRAL CARD
 // ══════════════════════════════════════════════════════════════════
 function ViewerReferralCard({ code, playerCount }: { code: string; playerCount: number }) {
+  const t = useTranslations("Quiz.referral");
   const [copied, setCopied] = useState(false);
   const url = typeof window !== "undefined" ? `${window.location.origin}/quiz/${code}` : `https://bauin.app/quiz/${code}`;
   const goal = 50;
@@ -429,7 +432,7 @@ function ViewerReferralCard({ code, playerCount }: { code: string; playerCount: 
           <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
           <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
         </svg>
-        <span className="text-white font-semibold text-sm">Invite Friends · Earn Rewards</span>
+        <span className="text-white font-semibold text-sm">{t("title")}</span>
       </div>
 
       {/* Link row */}
@@ -441,15 +444,15 @@ function ViewerReferralCard({ code, playerCount }: { code: string; playerCount: 
           className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
             copied ? "bg-green-500 text-white" : "bg-white/20 text-white hover:bg-white/30"
           }`}>
-          {copied ? "✓" : "Copy"}
+          {copied ? t("copied") : t("copy")}
         </button>
       </div>
 
       {/* Progress */}
       <div className="mb-3">
         <div className="flex justify-between text-xs mb-1.5">
-          <span className="text-white/60">{playerCount} players joined</span>
-          <span className="text-white/40">Goal: {goal}</span>
+          <span className="text-white/60">{t("playersJoined", { count: playerCount })}</span>
+          <span className="text-white/40">{t("goal", { n: goal })}</span>
         </div>
         <div className="h-2 bg-white/10 rounded-full overflow-hidden">
           <div
@@ -458,7 +461,7 @@ function ViewerReferralCard({ code, playerCount }: { code: string; playerCount: 
           />
         </div>
         <p className="text-white/40 text-[10px] mt-1.5">
-          {goal - playerCount} more players until prize pool doubles 🔥
+          {t("morePlayers", { n: goal - playerCount })}
         </p>
       </div>
 
@@ -469,7 +472,7 @@ function ViewerReferralCard({ code, playerCount }: { code: string; playerCount: 
           <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/>
           <polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
         </svg>
-        Share Quiz Link
+        {t("shareLink")}
       </button>
     </div>
   );
@@ -479,6 +482,7 @@ function ViewerReferralCard({ code, playerCount }: { code: string; playerCount: 
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════════
 export default function QuizLobbyPage() {
+  const t = useTranslations("Quiz");
   const { code }   = useParams<{ code: string }>();
   const router     = useRouter();
   const { data: authSession } = useSession();
@@ -563,7 +567,7 @@ export default function QuizLobbyPage() {
         <div className="flex justify-center mb-4">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white/80 text-xs font-medium">
             <span className="w-2 h-2 rounded-full bg-gold animate-pulse" />
-            LIVE QUIZ SESSION
+            {t("liveSession")}
           </span>
         </div>
 
@@ -578,7 +582,7 @@ export default function QuizLobbyPage() {
               <img src={info.collection.logoUrl} alt="logo" className="h-8 mb-3 object-contain" />
             )}
             <p className="text-xs text-white/60 font-medium uppercase tracking-widest mb-2">
-              Hosted by {info?.collection.hostName ?? "—"}
+              {t("hostedBy", { name: info?.collection.hostName ?? "—" })}
             </p>
             <h1 className="text-2xl font-black text-white leading-tight">
               {info?.session.title ?? info?.collection.name ?? "Loading…"}
@@ -591,27 +595,27 @@ export default function QuizLobbyPage() {
             )}
             <div className="absolute top-6 right-6">
               {ended ? (
-                <span className="px-3 py-1 bg-red-500/20 border border-red-400/40 rounded-full text-red-300 text-xs font-semibold">Ended</span>
+                <span className="px-3 py-1 bg-red-500/20 border border-red-400/40 rounded-full text-red-300 text-xs font-semibold">{t("statusEnded")}</span>
               ) : canPlay ? (
                 <span className="flex items-center gap-1.5 px-3 py-1 bg-green-500/20 border border-green-400/40 rounded-full text-green-300 text-xs font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping" />Active
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping" />{t("statusActive")}
                 </span>
               ) : (
-                <span className="px-3 py-1 bg-yellow-500/20 border border-yellow-400/40 rounded-full text-yellow-300 text-xs font-semibold">Coming Soon</span>
+                <span className="px-3 py-1 bg-yellow-500/20 border border-yellow-400/40 rounded-full text-yellow-300 text-xs font-semibold">{t("statusComingSoon")}</span>
               )}
             </div>
           </div>
 
           {/* Prize pool */}
           <div className="px-6 py-6 border-b border-gray-100">
-            <p className="text-xs text-gray-400 font-medium uppercase tracking-widest text-center mb-2">Live Prize Pool</p>
+            <p className="text-xs text-gray-400 font-medium uppercase tracking-widest text-center mb-2">{t("livePrizePool")}</p>
             <div className="flex items-center justify-center gap-1">
               <span className="text-4xl font-black text-gold">₦</span>
               <span className="text-5xl font-black text-gold tabular-nums leading-none">
                 {info ? <PrizeCounter value={info.prizePool} /> : "—"}
               </span>
             </div>
-            <p className="text-center text-xs text-gray-400 mt-2">Grows with every player who joins</p>
+            <p className="text-center text-xs text-gray-400 mt-2">{t("prizeGrows")}</p>
           </div>
 
           {/* Stats */}
@@ -622,18 +626,18 @@ export default function QuizLobbyPage() {
                   style={pulse ? { animation:"pop 0.6s ease" } : {}} />
                 <span className="text-2xl font-black text-text-dark tabular-nums">{info?.playerCount ?? 0}</span>
               </div>
-              <p className="text-xs text-gray-400 font-medium">Players Joined</p>
+              <p className="text-xs text-gray-400 font-medium">{t("playersJoined")}</p>
             </div>
             <div className="px-6 py-4 text-center">
               <span className="text-2xl font-black text-text-dark">5</span>
-              <p className="text-xs text-gray-400 font-medium mt-1">Game Phases</p>
+              <p className="text-xs text-gray-400 font-medium mt-1">{t("gamePhases")}</p>
             </div>
           </div>
 
           {/* Countdown */}
           {!canPlay && countdown !== null && countdown > 0 && (
             <div className="px-6 py-4 bg-gold/5 border-b border-gold/20 text-center">
-              <p className="text-xs text-gold/70 font-medium uppercase tracking-wide mb-1">Starts in</p>
+              <p className="text-xs text-gold/70 font-medium uppercase tracking-wide mb-1">{t("startsIn")}</p>
               <p className="text-3xl font-black text-gold tabular-nums">{fmtCountdown(countdown)}</p>
             </div>
           )}
@@ -648,12 +652,12 @@ export default function QuizLobbyPage() {
             {betDone && (
               <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm font-semibold mb-4">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-4 h-4 flex-shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
-                Bet placed! Good luck 🎯
+                {t("betPlaced")}
               </div>
             )}
 
             {ended ? (
-              <p className="text-center text-gray-500 text-sm py-4">This session has ended.</p>
+              <p className="text-center text-gray-500 text-sm py-4">{t("sessionEnded")}</p>
             ) : canPlay ? (
               <div className="flex flex-col gap-3">
                 <button onClick={handlePlay} disabled={joining}
@@ -664,45 +668,45 @@ export default function QuizLobbyPage() {
                       <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
                         <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeDashoffset="10"/>
                       </svg>
-                      Joining…
+                      {t("joining")}
                     </span>
                   ) : (
                     <span className="flex items-center justify-center gap-2">
                       <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                      {info?.collection.ctaText ?? "Play Now"}
+                      {info?.collection.ctaText ?? t("playNow")}
                     </span>
                   )}
                 </button>
                 {!betDone && (
-                  <button onClick={() => { if (!authSession) { setError("Sign in to place a bet"); return; } setShowBet(true); }}
+                  <button onClick={() => { if (!authSession) { setError(t("signInToBet")); return; } setShowBet(true); }}
                     className="w-full py-3 rounded-2xl font-bold text-sm border-2 border-primary text-primary hover:bg-primary/5 transition-colors flex items-center justify-center gap-2">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                     </svg>
-                    Place a Bet
+                    {t("placeBet")}
                   </button>
                 )}
               </div>
             ) : (
               <div className="w-full py-4 rounded-2xl bg-gray-100 text-center text-gray-400 text-sm font-semibold">
-                {countdown === 0 ? "Starting soon…" : "Not available yet"}
+                {countdown === 0 ? t("startingSoon") : t("notAvailable")}
               </div>
             )}
 
             <p className="text-center text-xs text-gray-400 mt-3">
-              {info?.playerCount ? `${info.playerCount} player${info.playerCount !== 1 ? "s" : ""} competing` : "Be the first to join!"}
+              {t("playersCompeting", { count: info?.playerCount ?? 0 })}
             </p>
           </div>
         </div>
 
         {/* Phase strip */}
         <div className="mt-4 flex gap-2 justify-center">
-          {["Flash","Memory","Sequence","Fill-Gap","True/False"].map((p,i) => (
+          {(["flash","memory","sequence","fillGap","trueFalse"] as const).map((key, i) => (
             <div key={i} className="flex flex-col items-center gap-1">
               <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
                 <span className="text-white/80 text-xs font-bold">{i+1}</span>
               </div>
-              <span className="text-white/50 text-[9px] font-medium">{p}</span>
+              <span className="text-white/50 text-[9px] font-medium">{t(`phases.${key}`)}</span>
             </div>
           ))}
         </div>

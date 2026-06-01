@@ -6,6 +6,8 @@ import InstallBanner from "@/components/pwa/InstallBanner";
 import PushManager from "@/components/pwa/PushManager";
 import { JsonLd } from "@/components/JsonLd";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -125,15 +127,18 @@ const websiteJsonLd = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
     // suppressHydrationWarning prevents React mismatch warnings when the
     // anti-flash script adds the 'dark' class before hydration.
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         {/* Runs before first paint — avoids flash of wrong theme */}
         <script
@@ -146,10 +151,12 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ThemeProvider>
-          {children}
-          <ServiceWorkerRegistration />
-          <InstallBanner />
-          <PushManager />
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            {children}
+            <ServiceWorkerRegistration />
+            <InstallBanner />
+            <PushManager />
+          </NextIntlClientProvider>
         </ThemeProvider>
       </body>
     </html>

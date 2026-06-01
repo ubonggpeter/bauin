@@ -2,6 +2,7 @@
 
 import { useTheme } from "@/context/ThemeContext";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 
@@ -85,6 +86,28 @@ export default function ProfilePage() {
                 <p className="text-xs text-gray-500 capitalize">{theme === "dark" ? "Dark mode" : "Light mode"} active</p>
               </div>
             </div>
+          </Row>
+        </Section>
+
+        {/* Language */}
+        <Section title="Language">
+          <Row>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-primary">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="2" y1="12" x2="22" y2="12"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                  </svg>
+                </div>
+                <p className="text-sm font-semibold text-text-dark">App language</p>
+              </div>
+              <LanguageSwitcher variant="select" />
+            </div>
+          </Row>
+          <Row>
+            <LanguageSwitcher variant="pills" />
           </Row>
         </Section>
 

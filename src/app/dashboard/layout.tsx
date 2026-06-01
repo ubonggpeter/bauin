@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import SupportWidget from "@/components/SupportWidget";
 import { useTheme } from "@/context/ThemeContext";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 // Items shown in the mobile bottom tab bar (≤5 to fit 375 px)
 const MOBILE_TAB_LABELS = ["Home", "Explore", "Compete", "Wallet", "Profile"];
@@ -355,6 +356,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Theme toggle — same visual treatment as Collapse / Sign Out */}
           <ThemeSidebarButton collapsed={collapsed} />
+
+          {/* Language switcher */}
+          {!collapsed && (
+            <LanguageSwitcher
+              variant="select"
+              className="px-3 py-2 text-primary-light"
+            />
+          )}
 
           <button
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-primary-light hover:text-white hover:bg-white/10 transition-colors text-sm w-full ${

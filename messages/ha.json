@@ -1,0 +1,256 @@
+{
+  "Quiz": {
+    "liveSession": "ZAMAN TAMBAYOYI NA RAYUWA",
+    "playersJoined": "Ƴan Wasa da Suka Shiga",
+    "gamePhases": "Matakan Wasa",
+    "livePrizePool": "Kyauta ta Kai-tsaye",
+    "prizeGrows": "Tana ƙaruwa da kowane ɗan wasa da ya shiga",
+    "startsIn": "Yana fara cikin",
+    "statusEnded": "Ya Ƙare",
+    "statusActive": "Yana Gudana",
+    "statusComingSoon": "Zai Zo Soon",
+    "hostedBy": "Mai-masaukin: {name}",
+    "joining": "Ana shiga…",
+    "playNow": "Buga Yanzu",
+    "placeBet": "Ajiye Caca",
+    "sessionEnded": "Wannan zaman ya ƙare.",
+    "startingSoon": "Yana fara soon…",
+    "notAvailable": "Ba a samu ba tukuna",
+    "playersCompeting": "{count, plural, =0 {Kasance na farko da ya shiga!} one {# ɗan wasa yana gasa} other {# 'yan wasa suna gasa}}",
+    "betPlaced": "Caca an ajiye! Sa'a 🎯",
+    "signInToBet": "Shiga don ajiye caca",
+    "phases": {
+      "flash": "Sauri",
+      "memory": "Ƙwaƙwalwa",
+      "sequence": "Tsari",
+      "fillGap": "Cika Giɓi",
+      "trueFalse": "Gaskiya/Ƙarya"
+    },
+    "referral": {
+      "title": "Gayyaci Abokai · Samu Kyauta",
+      "copy": "Kwafi",
+      "copied": "✓",
+      "playersJoined": "{count, plural, one {# ɗan wasa ya shiga} other {# 'yan wasa sun shiga}}",
+      "goal": "Manufa: {n}",
+      "morePlayers": "{n} 'yan wasa ƙari don ninkawa kyauta 🔥",
+      "shareLink": "Raba Haɗin Wasa"
+    },
+    "bet": {
+      "titleType": "Ajiye Caca",
+      "titlePick": "Zabi {n} 'Yan Wasa",
+      "titleStake": "Tabbatar da Caca",
+      "chooseBetType": "Zabi nau'in caca",
+      "selectedOf": "{sel}/{total} zaɓaɓɓu",
+      "typeAndBonus": "{label} · {bonus}",
+      "higherRisk": "Hadari mai girma = lada mai girma. Zaɓi waɗanda za su yi nasara.",
+      "predictPlayers": "Hasashen {n} {n, plural, one {ɗan wasa} other {'yan wasa}} da za su ƙare a saman {n}",
+      "win": "Ci",
+      "multiplierStake": "{mult}× caca",
+      "betsAreFinal": "Caca ta ƙarewa bayan tabbatar biyan kuɗi",
+      "selectExactly": "Zaɓi gangan {n} {n, plural, one {ɗan wasa} other {'yan wasa}} da ka yi imani za su ƙare a saman {n}",
+      "continue": "Ci gaba →",
+      "betType": "Nau'in caca",
+      "predictedPlayers": "'Yan wasan da aka zaɓa",
+      "nSelected": "{n} zaɓaɓɓu",
+      "yourStake": "Cacar Ka",
+      "minimumStake": "Mafi ƙaranci ₦100",
+      "minimumStakeError": "Mafi ƙarancin caca ₦100 ne",
+      "potentialWin": "Yiwuwar riba",
+      "potentialWinDetail": "₦{stake} × {mult} = ₦{total} idan ka ci",
+      "confirming": "Ana tabbatarwa…",
+      "payViaPaystack": "Biya ₦{amount} ta Paystack",
+      "payEmpty": "Biya ₦— ta Paystack"
+    }
+  },
+  "GamePlay": {
+    "phaseOf": "Matakin {n}/5",
+    "phaseNames": {
+      "1": "Sauri",
+      "2": "Ƙwaƙwalwa",
+      "3": "Tsari",
+      "4": "Cika Giɓi",
+      "5": "Gaskiya/Ƙarya"
+    },
+    "phaseFullNames": {
+      "1": "Katin Sauri",
+      "2": "Daidaita Ƙwaƙwalwa",
+      "3": "Tsari",
+      "4": "Cika Giɓi",
+      "5": "Gaskiya / Ƙarya"
+    },
+    "phaseComplete": "Mataki {n} Ya Ƙare",
+    "youScored": "Ka samu",
+    "outOf100": "daga cikin maki 100",
+    "nextPhase": "Mataki {n} →",
+    "seeResults": "Duba Sakamakon",
+    "getReady": "Yi Shirye",
+    "phases500": "Mataki 5 · Maki 500 mafi yawa",
+    "go": "TAFI!",
+    "loadingGame": "Ana loda wasa…",
+    "saving": "Ana adanawa…",
+    "flash": {
+      "cardOf": "Kati {n} daga {total}",
+      "term": "Kalma",
+      "definition": "Ma'ana",
+      "memorize": "Riƙe ma'anar a ƙwaƙwalwa",
+      "remember": "Tuna wannan kalmar…"
+    },
+    "memory": {
+      "title": "Daidaita Ƙwaƙwalwa",
+      "pairsFound": "{found}/{total} nau'i an samu"
+    },
+    "sequence": {
+      "title": "Shirya cikin Tsari",
+      "instruction": "Ja ko danna biyu don musanyawa",
+      "checking": "Ana duba…",
+      "submit": "Aika Tsari"
+    },
+    "fillGap": {
+      "correctSoFar": "{n} daidai har yanzu"
+    },
+    "trueFalse": {
+      "true": "GASKIYA",
+      "false": "ƘARYA",
+      "correct": "✓ Daidai!",
+      "wrong": "✗ Amsar ita ce {answer}"
+    },
+    "winner": {
+      "youWon": "KA CI",
+      "firstPlace": "🥇 Matsayin Farko",
+      "finished1st": "Ka ƙare a matsayin farko!",
+      "pointsMax": "maki · Mafi yawa: 500",
+      "viewResults": "Duba Dukkan Sakamakon"
+    },
+    "savePrompt": {
+      "title": "Adana nasararka!",
+      "desc": "Ka samu {total}/500 — ƙirƙiri asusun kyauta don adana ci gabanka.",
+      "cta": "Ƙirƙiri asusun kyauta →",
+      "note": "Babu buƙatar biyan kuɗi · Yana ɗaukar daƙiƙa 30"
+    },
+    "results": {
+      "gameComplete": "Wasa Ya Ƙare",
+      "rankOf": "Matsayi {rank} daga {total} {total, plural, one {ɗan wasa} other {'yan wasa}}",
+      "shareResult": "Raba Sakamakon",
+      "backToLobby": "Koma Zauren",
+      "excellent": "Kyau sosai!",
+      "goodJob": "Aikin kyau!",
+      "keepPractising": "Ci gaba da aiki!",
+      "correctSoFar": "{n} daidai har yanzu"
+    }
+  },
+  "Landing": {
+    "nav": {
+      "howItWorks": "Yadda Yake Aiki",
+      "categories": "Nau'ikan",
+      "referral": "Gayyata",
+      "pricing": "Farashi",
+      "blog": "Blog",
+      "affiliate": "Abokin Haɗin",
+      "signIn": "Shiga",
+      "registerNow": "Yi Rijista Yanzu"
+    },
+    "hero": {
+      "badge": "Cibiyar Samun Kuɗi ta AI #1 Afirka",
+      "title1": "Juya Ƙwarewar AI zuwa",
+      "title2": "Kuɗi na Gaskiya",
+      "desc": "Shiga Nijeriyawa 50,000+ waɗanda ke samun ₦50,000–₦500,000/wata ta ayyukan AI da aka tabbatar, gayyata, gasa tambayoyi & ƙungiyoyin saka hannun jari.",
+      "cta": "Fara Samun Kuɗi Kyauta",
+      "watchDemo": "Kalli Demo",
+      "statsLabel": "Nijeriyawa suna samun kuɗi kullum"
+    },
+    "stats": {
+      "activeMembers": "Membobi Masu Aiki",
+      "earningsPaid": "Kuɗin da aka Biya",
+      "incomeCategories": "Nau'ikan Samun Kuɗi",
+      "statesCovered": "Jihohi da aka Rufe"
+    },
+    "howItWorks": {
+      "title": "Fara Samun Kuɗi cikin Mataki 4",
+      "subtitle": "Shiga dubun-dubatan Nijeriyawa da ke samun kuɗi da AI"
+    },
+    "steps": {
+      "register": "Yi Rijista & Zaɓa",
+      "registerDesc": "Yi rijista kuma zaɓi nau'in samun kuɗin bisa ƙwarewar ka da sha'awarkai.",
+      "certify": "Samu Tabbatarwa",
+      "certifyDesc": "Kammala ɗan gwajin tabbatarwa don nuna ƙwarewarkai da buɗe cikakken damar.",
+      "tools": "Shiga Kayan Aikin AI",
+      "toolsDesc": "Samu cikakken damar kayan aiki masu ƙarfi na AI, ayyuka na gaskiya, da damar samun kuɗi kullum.",
+      "earn": "Samu Kuɗi & Girma",
+      "earnDesc": "Samu kuɗi daga ayyuka, tambayoyi, gayyata, da caca. Faɗaɗa ƙungiyarka don samun kuɗi ba tare da aiki ba."
+    },
+    "categories": {
+      "sectionTitle": "Nau'ikan Samun Kuɗi 7 Masu Tabbaci",
+      "sectionSubtitle": "Zaɓi ɗaya, kaɗan, ko duka — haɗa don samun kuɗi mafi yawa",
+      "popular": "Shahararren",
+      "getStarted": "Fara →"
+    },
+    "pricing": {
+      "sectionTitle": "Farashi Mai Sauƙi, Bayyananne",
+      "sectionSubtitle": "Babu kuɗin wata — biya sau ɗaya, samu kuɗi har abada",
+      "mostPopular": "Shahararren Mafi Yawa",
+      "getStarted": "Fara da {plan}",
+      "allPlansInclude": "Duk shirye-shirye sun haɗa da"
+    },
+    "footer": {
+      "tagline": "Cibiyar Samun Kuɗi ta AI #1 Afirka",
+      "rights": "© 2025 BAUIN. Duk haƙƙoƙi sun wajaba.",
+      "privacy": "Sirri",
+      "terms": "Sharuɗɗa",
+      "contact": "Tuntuba"
+    }
+  },
+  "Register": {
+    "aiIncomeNetwork": "Cibiyar Samun Kuɗi ta AI",
+    "stepAccount": "Asusun",
+    "stepCategories": "Nau'ikan",
+    "tips": {
+      "1": "Kowane nau'in yana buɗe saitin kayan aikin AI na musamman",
+      "2": "Samu kuɗi daga ayyuka na yau da kullum, tambayoyi & gayyata",
+      "3": "Ragi na haɗi idan ka zaɓi duk nau'ikan 7",
+      "4": "Damar kwanaki 30 — za a iya sabuntawa daga dashboard ɗin ka"
+    },
+    "benefits": {
+      "aiStreams": "Hanyoyin samun kuɗi na AI suna aiki 24 / 7",
+      "referralCommission": "50% kuɗin gayyata akan kowane rijista",
+      "dashboard": "Dashboard na samun kuɗi na gaske da nazari",
+      "aiTools": "Kayan aikin AI na musamman & damar tabbatarwa",
+      "investment": "Ƙungiyoyin saka hannun jari masu bin diddigin riba",
+      "withdrawals": "Fitar da kuɗin wallet a rana ɗaya, babu ɓoye kuɗi"
+    },
+    "account": {
+      "title": "Ƙirƙiri Asusunka",
+      "subtitle": "Shiga Nijeriyawa 50,000+ suna samun kuɗi da AI",
+      "fullName": "Cikakken suna",
+      "email": "Adireshin imel",
+      "password": "Kalmar sirri",
+      "referralCode": "Lambar gayyata (ba tilas ba)",
+      "createAccount": "Ƙirƙiri Asusun",
+      "creating": "Ana ƙirƙirawa…",
+      "alreadyHave": "Kana da asusun?",
+      "signIn": "Shiga"
+    },
+    "categories": {
+      "title": "Zaɓi Nau'ikan Samun Kuɗin Ka",
+      "subtitle": "Zaɓi ƙwarewar AI da kake son samun kuɗi daga gare ta",
+      "bundleLabel": "Zaɓi duk 7 — Adana ₦{discount}",
+      "bundleNote": "Mafi kyawun farashi: ₦{price} maimakon ₦{full}",
+      "nSelected": "{n, plural, one {# nau'i} other {# nau'ikan}} da aka zaɓa",
+      "fee": "₦{fee} rijista",
+      "monthlyRange": "₦{min}–₦{max}/wata",
+      "orderSummary": "Taƙaitaccen Oda",
+      "subtotal": "Jimillar ɓangare",
+      "bundleDiscount": "Ragi na haɗi",
+      "total": "Jimla",
+      "proceed": "Ci gaba zuwa Biyan Kuɗi",
+      "processing": "Ana sarrafa…",
+      "noCategories": "Da fatan zaɓi aƙalla nau'i ɗaya"
+    }
+  },
+  "LanguageSwitcher": {
+    "label": "Harshe",
+    "en": "English",
+    "yo": "Yorùbá",
+    "ha": "Hausa",
+    "ig": "Igbo"
+  }
+}

@@ -1,0 +1,256 @@
+{
+  "Quiz": {
+    "liveSession": "ỌCHỊCHỌ AJỤJỤ DĮ NDỤ",
+    "playersJoined": "Ndị Na-egwu Sonyere",
+    "gamePhases": "Usoro Egwuregwu",
+    "livePrizePool": "Ihe Onyinye Ndụ",
+    "prizeGrows": "Na-eto eto na onye ọ bụla sonyere",
+    "startsIn": "Na-amalite na",
+    "statusEnded": "Mechara",
+    "statusActive": "Na-arụ Ọrụ",
+    "statusComingSoon": "Na-abịa n'oge Ụfọdụ",
+    "hostedBy": "Onye nwe: {name}",
+    "joining": "Na-eso…",
+    "playNow": "Gruo Ugbu a",
+    "placeBet": "Tụọ Ntụgharị",
+    "sessionEnded": "Oge a gachala.",
+    "startingSoon": "Na-amalite n'oge ụfọdụ…",
+    "notAvailable": "Adịghị adị ugbu a",
+    "playersCompeting": "{count, plural, =0 {Bụ nke mbụ ịsonye!} one {# onye na-agwu} other {# ndị na-agwu}}",
+    "betPlaced": "Ntụgharị etinyere! Ọ dị mma 🎯",
+    "signInToBet": "Banye iji tụọ ntụgharị",
+    "phases": {
+      "flash": "Ngwa ngwa",
+      "memory": "Ncheta",
+      "sequence": "Usoro",
+      "fillGap": "Jupụta Oghere",
+      "trueFalse": "Ezi/Ọ Bụ Ụgha"
+    },
+    "referral": {
+      "title": "Kpọ Ndị Enyi · Nweta Ihe Onyinye",
+      "copy": "Detuo",
+      "copied": "✓",
+      "playersJoined": "{count, plural, one {# onye sonyere} other {# ndị sonyere}}",
+      "goal": "Ebumnuche: {n}",
+      "morePlayers": "{n} ndị ọzọ ka ihe onyinye ọ bụla okpukpe 🔥",
+      "shareLink": "Kesaa Njikọ Ajụjụ"
+    },
+    "bet": {
+      "titleType": "Tụọ Ntụgharị",
+      "titlePick": "Họọ {n} Ndị Na-egwu",
+      "titleStake": "Kwado Ntụgharị",
+      "chooseBetType": "Họọ ụdị ntụgharị gị",
+      "selectedOf": "{sel}/{total} ahọpụtara",
+      "typeAndBonus": "{label} · {bonus}",
+      "higherRisk": "Ihe ize ndụ dị elu = ụgwọ dị elu. Họọ ndị ga-emeri.",
+      "predictPlayers": "Kwuo asọmpi maka {n} {n, plural, one {onye na-egwu} other {ndị na-egwu}} ga-emecha n'elu {n}",
+      "win": "Nweta",
+      "multiplierStake": "{mult}× ntụgharị",
+      "betsAreFinal": "Ntụgharị mechara mgbe emechara nkwenye ịkwụ ụgwọ",
+      "selectExactly": "Họọ n'ụzọ ziri ezi {n} {n, plural, one {onye na-egwu} other {ndị na-egwu}} ị chere ga-emecha n'elu {n}",
+      "continue": "Gaa n'ihu →",
+      "betType": "Ụdị ntụgharị",
+      "predictedPlayers": "Ndị na-egwu ahọpụtara",
+      "nSelected": "{n} ahọpụtara",
+      "yourStake": "Ntụgharị Gị",
+      "minimumStake": "Kacha obere ₦100",
+      "minimumStakeError": "Ntụgharị kacha obere bụ ₦100",
+      "potentialWin": "Ọ nwere ike ịmeri",
+      "potentialWinDetail": "₦{stake} × {mult} = ₦{total} ma ọ bụrụ na ị meriri",
+      "confirming": "Na-akwado…",
+      "payViaPaystack": "Kwụọ ₦{amount} site na Paystack",
+      "payEmpty": "Kwụọ ₦— site na Paystack"
+    }
+  },
+  "GamePlay": {
+    "phaseOf": "Usoro {n}/5",
+    "phaseNames": {
+      "1": "Ngwa Ngwa",
+      "2": "Ncheta",
+      "3": "Usoro",
+      "4": "Jupụta Oghere",
+      "5": "Ezi/Ụgha"
+    },
+    "phaseFullNames": {
+      "1": "Kaadị Ngwa Ngwa",
+      "2": "Ijikọ Ncheta",
+      "3": "Usoro",
+      "4": "Jupụta Oghere",
+      "5": "Ezi / Ụgha"
+    },
+    "phaseComplete": "Usoro {n} Mechara",
+    "youScored": "Ị nwetara",
+    "outOf100": "n'ime ihe 100",
+    "nextPhase": "Usoro {n} →",
+    "seeResults": "Lelee Nsonaazụ",
+    "getReady": "Dị Njikere",
+    "phases500": "Usoro 5 · Ihe 500 kachasị",
+    "go": "GAWA!",
+    "loadingGame": "Na-ebu egwuregwu…",
+    "saving": "Na-echekwa…",
+    "flash": {
+      "cardOf": "Kaadị {n} nke {total}",
+      "term": "Okwu",
+      "definition": "Nkọwa",
+      "memorize": "Chekwaa nkọwa n'uche",
+      "remember": "Cheta okwu a…"
+    },
+    "memory": {
+      "title": "Ijikọ Ncheta",
+      "pairsFound": "{found}/{total} ụzọ abụọ hụrụ"
+    },
+    "sequence": {
+      "title": "Hazie n'Usoro",
+      "instruction": "Dọọ ma ọ bụ pịa abụọ ka ha nwee mgbanwe",
+      "checking": "Na-enyocha…",
+      "submit": "Zipu Usoro"
+    },
+    "fillGap": {
+      "correctSoFar": "{n} ziri ezi ruo ugbu a"
+    },
+    "trueFalse": {
+      "true": "EZI",
+      "false": "ỤGHA",
+      "correct": "✓ Ziri Ezi!",
+      "wrong": "✗ Azịza bụ {answer}"
+    },
+    "winner": {
+      "youWon": "Ị MERIRI",
+      "firstPlace": "🥇 Ọnọdụ Mbụ",
+      "finished1st": "Ị mechara n'ọnọdụ mbụ!",
+      "pointsMax": "ihe · Kacha: 500",
+      "viewResults": "Lelee Nsonaazụ Niile"
+    },
+    "savePrompt": {
+      "title": "Chekwaa ihe ị meriri!",
+      "desc": "Ị nwetara {total}/500 — mepụta akaụntụ n'efu ka ị chekwaa ọganihu gị.",
+      "cta": "Mepụta akaụntụ n'efu →",
+      "note": "Ọ dịghị mkpa ịkwụ ụgwọ · Na-were sekọnd 30"
+    },
+    "results": {
+      "gameComplete": "Egwuregwu Mechara",
+      "rankOf": "Ọnọdụ {rank} nke {total} {total, plural, one {onye na-egwu} other {ndị na-egwu}}",
+      "shareResult": "Kesaa Nsonaazụ",
+      "backToLobby": "Laghachi n'Ụlọ Oge",
+      "excellent": "Ebube!",
+      "goodJob": "Ọrụ dị mma!",
+      "keepPractising": "Cide ịmụ!",
+      "correctSoFar": "{n} ziri ezi ruo ugbu a"
+    }
+  },
+  "Landing": {
+    "nav": {
+      "howItWorks": "Otu Ọ Si Arụ Ọrụ",
+      "categories": "Ụdị",
+      "referral": "Ntụaka",
+      "pricing": "Ọnụ Ahịa",
+      "blog": "Blog",
+      "affiliate": "Onye Mmekọ",
+      "signIn": "Banye",
+      "registerNow": "Debanye Aha Ugbu a"
+    },
+    "hero": {
+      "badge": "Netwọkụ Ọrụ AI #1 na Afrịka",
+      "title1": "Tụgharịa Ikike AI gị ka ọ bụrụ",
+      "title2": "Ego N'ụzọ Ziri Ezi",
+      "desc": "Sonye ọtụtụ Ndị Naịjirịa 50,000+ na-enweta ₦50,000–₦500,000/ọnwa site n'ọrụ AI akwadoro, ntụaka, asọmpi ajụjụ & ụgbụ ihe onyinye.",
+      "cta": "Bido Ịnweta Ego N'efu",
+      "watchDemo": "Lelee Ngosi",
+      "statsLabel": "Ndị Naịjirịa na-enweta ego kwa ụbọchị"
+    },
+    "stats": {
+      "activeMembers": "Ndị Otu Na-arụ Ọrụ",
+      "earningsPaid": "Ego A Kwụọla",
+      "incomeCategories": "Ụdị Ọrụ",
+      "statesCovered": "Steeti Ekpuchiri"
+    },
+    "howItWorks": {
+      "title": "Bido Ịnweta Ego n'Usoro 4",
+      "subtitle": "Sonye ọtụtụ Ndị Naịjirịa na-enweta ego site na AI"
+    },
+    "steps": {
+      "register": "Debanye Aha & Họọ",
+      "registerDesc": "Debanye aha ma họọ ụdị ọrụ gị dabere n'ihe ọ mara ọrụ na mmasị gị.",
+      "certify": "Nweta Akwụkwọ Ikike",
+      "certifyDesc": "Mechaakwụkwọ ule ikike dị mkpụmkpụ ka ị gosipụta nkà gị wee mepee ohere zuru oke.",
+      "tools": "Nweta Ngwaọrụ AI",
+      "toolsDesc": "Nweta ohere zuru oke nye ngwaọrụ AI dị ike, ọrụ n'eziokwu, na ohere ọrụ kwa ụbọchị.",
+      "earn": "Nweta Ego & Tolite",
+      "earnDesc": "Nweta ego site n'ọrụ, ajụjụ, ntụaka, na ntụgharị. Kwalite ndị ọrụ gị maka ego anaghị arụ ọrụ."
+    },
+    "categories": {
+      "sectionTitle": "Ụdị Ọrụ 7 A Kwadoro",
+      "sectionSubtitle": "Họọ otu, ụfọdụ, ma ọ bụ ha niile — jikọọ maka ọtụtụ ego",
+      "popular": "Ndị Na-ahọpụta",
+      "getStarted": "Bido →"
+    },
+    "pricing": {
+      "sectionTitle": "Ọnụ Ahịa Dị Mfe, Doro Anya",
+      "sectionSubtitle": "Ọ dịghị ụgwọ ọnwa — kwụọ ụgwọ otu ugboro, nweta ego ruo mgbe ebighị ebi",
+      "mostPopular": "Ndị Na-ahọpụta Kachasị",
+      "getStarted": "Bido na {plan}",
+      "allPlansInclude": "Atụmatụ niile gụnyere"
+    },
+    "footer": {
+      "tagline": "Netwọkụ Ọrụ AI #1 na Afrịka",
+      "rights": "© 2025 BAUIN. Ikike niile echekwara.",
+      "privacy": "Nzuzo",
+      "terms": "Iwu",
+      "contact": "Kpọtụrụ Anyị"
+    }
+  },
+  "Register": {
+    "aiIncomeNetwork": "Netwọkụ Ọrụ AI",
+    "stepAccount": "Akaụntụ",
+    "stepCategories": "Ụdị",
+    "tips": {
+      "1": "Ụdị ọ bụla na-emepega ụdị ngwaọrụ AI ya",
+      "2": "Nweta ego site n'ọrụ kwa ụbọchị, ajụjụ & ntụaka",
+      "3": "Ihe ntụkwasị maka njikọ mgbe ị họọrọ ụdị 7 niile",
+      "4": "Ohere ụbọchị 30 — enwere ike imezigharị ya site na dashboard gị"
+    },
+    "benefits": {
+      "aiStreams": "Ihe mbata ego AI na-arụ ọrụ 24 / 7",
+      "referralCommission": "Kọmishọn ntụaka 50% n'akaụntụ ọ bụla debanye aha",
+      "dashboard": "Dashboard ego n'oge na nyocha",
+      "aiTools": "Ngwaọrụ AI pụrụ iche & ohere akwụkwọ ikike",
+      "investment": "Ụgbụ ihe onyinye nwere ọ bụla ndepụta",
+      "withdrawals": "Iwepụ ego wallet n'otu ụbọchị, ọ dịghị ụgwọ ezuguzo"
+    },
+    "account": {
+      "title": "Mepụta Akaụntụ Gị",
+      "subtitle": "Sonye Ndị Naịjirịa 50,000+ na-enweta ego na AI",
+      "fullName": "Aha zuru oke",
+      "email": "Adreesị email",
+      "password": "Paswọọdụ",
+      "referralCode": "Koodu ntụaka (ọ bụghị mkpa)",
+      "createAccount": "Mepụta Akaụntụ",
+      "creating": "Na-emepụta…",
+      "alreadyHave": "Ị nweela akaụntụ?",
+      "signIn": "Banye"
+    },
+    "categories": {
+      "title": "Họọ Ụdị Ọrụ Gị",
+      "subtitle": "Họọ ihe ọ mara ọrụ AI ị chọrọ ịnweta ego site na ya",
+      "bundleLabel": "Họọ 7 niile — Chekwaa ₦{discount}",
+      "bundleNote": "Ọnụ ahịa kachasị mma: ₦{price} kama ₦{full}",
+      "nSelected": "{n, plural, one {# ụdị} other {# ụdị}} ahọpụtara",
+      "fee": "₦{fee} debanye aha",
+      "monthlyRange": "₦{min}–₦{max}/ọnwa",
+      "orderSummary": "Nchịkọta Ọrụ",
+      "subtotal": "Ngụkọta Ụfọdụ",
+      "bundleDiscount": "Ihe ntụkwasị njikọ",
+      "total": "Ngụkọta",
+      "proceed": "Gaa n'Ihu na Ikwụ Ụgwọ",
+      "processing": "Na-eme nhazi…",
+      "noCategories": "Biko họọ otu ụdị ma ọ dịkarịa ala"
+    }
+  },
+  "LanguageSwitcher": {
+    "label": "Asụsụ",
+    "en": "English",
+    "yo": "Yorùbá",
+    "ha": "Hausa",
+    "ig": "Igbo"
+  }
+}

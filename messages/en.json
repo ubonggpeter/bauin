@@ -1,0 +1,256 @@
+{
+  "Quiz": {
+    "liveSession": "LIVE QUIZ SESSION",
+    "playersJoined": "Players Joined",
+    "gamePhases": "Game Phases",
+    "livePrizePool": "Live Prize Pool",
+    "prizeGrows": "Grows with every player who joins",
+    "startsIn": "Starts in",
+    "statusEnded": "Ended",
+    "statusActive": "Active",
+    "statusComingSoon": "Coming Soon",
+    "hostedBy": "Hosted by {name}",
+    "joining": "Joining…",
+    "playNow": "Play Now",
+    "placeBet": "Place a Bet",
+    "sessionEnded": "This session has ended.",
+    "startingSoon": "Starting soon…",
+    "notAvailable": "Not available yet",
+    "playersCompeting": "{count, plural, =0 {Be the first to join!} one {# player competing} other {# players competing}}",
+    "betPlaced": "Bet placed! Good luck 🎯",
+    "signInToBet": "Sign in to place a bet",
+    "phases": {
+      "flash": "Flash",
+      "memory": "Memory",
+      "sequence": "Sequence",
+      "fillGap": "Fill-Gap",
+      "trueFalse": "True/False"
+    },
+    "referral": {
+      "title": "Invite Friends · Earn Rewards",
+      "copy": "Copy",
+      "copied": "✓",
+      "playersJoined": "{count, plural, one {# player joined} other {# players joined}}",
+      "goal": "Goal: {n}",
+      "morePlayers": "{n} more players until prize pool doubles 🔥",
+      "shareLink": "Share Quiz Link"
+    },
+    "bet": {
+      "titleType": "Place a Bet",
+      "titlePick": "Pick {n} Players",
+      "titleStake": "Confirm Stake",
+      "chooseBetType": "Choose your bet type",
+      "selectedOf": "{sel}/{total} selected",
+      "typeAndBonus": "{label} · {bonus}",
+      "higherRisk": "Higher risk = higher reward. Pick predicted top finishers.",
+      "predictPlayers": "Predict {n} {n, plural, one {player} other {players}} to finish top {n}",
+      "win": "Win",
+      "multiplierStake": "{mult}× stake",
+      "betsAreFinal": "Bets are final once payment is confirmed",
+      "selectExactly": "Select exactly {n} {n, plural, one {player} other {players}} you think will finish in the top {n}",
+      "continue": "Continue →",
+      "betType": "Bet type",
+      "predictedPlayers": "Predicted players",
+      "nSelected": "{n} selected",
+      "yourStake": "Your Stake",
+      "minimumStake": "Minimum ₦100",
+      "minimumStakeError": "Minimum stake is ₦100",
+      "potentialWin": "Potential win",
+      "potentialWinDetail": "₦{stake} × {mult} = ₦{total} if you win",
+      "confirming": "Confirming…",
+      "payViaPaystack": "Pay ₦{amount} via Paystack",
+      "payEmpty": "Pay ₦— via Paystack"
+    }
+  },
+  "GamePlay": {
+    "phaseOf": "Phase {n}/5",
+    "phaseNames": {
+      "1": "Flash",
+      "2": "Memory",
+      "3": "Sequence",
+      "4": "Fill-Gap",
+      "5": "True/False"
+    },
+    "phaseFullNames": {
+      "1": "Flash Cards",
+      "2": "Memory Match",
+      "3": "Sequence",
+      "4": "Fill-Gap",
+      "5": "True / False"
+    },
+    "phaseComplete": "Phase {n} Complete",
+    "youScored": "You scored",
+    "outOf100": "out of 100 points",
+    "nextPhase": "Phase {n} →",
+    "seeResults": "See Results",
+    "getReady": "Get Ready",
+    "phases500": "5 phases · 500 points max",
+    "go": "GO!",
+    "loadingGame": "Loading game…",
+    "saving": "Saving…",
+    "flash": {
+      "cardOf": "Card {n} of {total}",
+      "term": "Term",
+      "definition": "Definition",
+      "memorize": "Memorize the definition",
+      "remember": "Remember this term…"
+    },
+    "memory": {
+      "title": "Memory Match",
+      "pairsFound": "{found}/{total} pairs found"
+    },
+    "sequence": {
+      "title": "Arrange in Order",
+      "instruction": "Drag items or tap two to swap them",
+      "checking": "Checking…",
+      "submit": "Submit Order"
+    },
+    "fillGap": {
+      "correctSoFar": "{n} correct so far"
+    },
+    "trueFalse": {
+      "true": "TRUE",
+      "false": "FALSE",
+      "correct": "✓ Correct!",
+      "wrong": "✗ The answer was {answer}"
+    },
+    "winner": {
+      "youWon": "YOU WON",
+      "firstPlace": "🥇 First Place",
+      "finished1st": "You finished 1st!",
+      "pointsMax": "points · Maximum: 500",
+      "viewResults": "View Full Results"
+    },
+    "savePrompt": {
+      "title": "Save your winnings!",
+      "desc": "You scored {total}/500 — create a free account to keep your progress & earn from future wins.",
+      "cta": "Create free account →",
+      "note": "No payment required · Takes 30 seconds"
+    },
+    "results": {
+      "gameComplete": "Game Complete",
+      "rankOf": "Rank {rank} of {total} {total, plural, one {player} other {players}}",
+      "shareResult": "Share Result",
+      "backToLobby": "Back to Lobby",
+      "excellent": "Excellent!",
+      "goodJob": "Good job!",
+      "keepPractising": "Keep practising!",
+      "correctSoFar": "{n} correct so far"
+    }
+  },
+  "Landing": {
+    "nav": {
+      "howItWorks": "How It Works",
+      "categories": "Categories",
+      "referral": "Referral",
+      "pricing": "Pricing",
+      "blog": "Blog",
+      "affiliate": "Affiliate",
+      "signIn": "Sign In",
+      "registerNow": "Register Now"
+    },
+    "hero": {
+      "badge": "Africa's #1 AI Income Network",
+      "title1": "Turn AI Skills Into",
+      "title2": "Real Income",
+      "desc": "Join 50,000+ Nigerians earning ₦50,000–₦500,000/month through certified AI tasks, referrals, quiz competitions & investment pools.",
+      "cta": "Start Earning Free",
+      "watchDemo": "Watch Demo",
+      "statsLabel": "Nigerians earning daily"
+    },
+    "stats": {
+      "activeMembers": "Active Members",
+      "earningsPaid": "Earnings Paid",
+      "incomeCategories": "Income Categories",
+      "statesCovered": "States Covered"
+    },
+    "howItWorks": {
+      "title": "Start Earning in 4 Simple Steps",
+      "subtitle": "Join thousands of Nigerians already earning with AI"
+    },
+    "steps": {
+      "register": "Register & Choose",
+      "registerDesc": "Sign up and select your income category based on your skills and interest area.",
+      "certify": "Get Certified",
+      "certifyDesc": "Complete a short certification test to prove your expertise and unlock full access.",
+      "tools": "Access AI Tools",
+      "toolsDesc": "Get full access to AI-powered tools, real tasks, and income opportunities daily.",
+      "earn": "Earn & Grow",
+      "earnDesc": "Earn from tasks, quizzes, referrals, and bets. Grow your team for passive income."
+    },
+    "categories": {
+      "sectionTitle": "7 Proven Income Categories",
+      "sectionSubtitle": "Choose one, some, or all — bundle for maximum earnings",
+      "popular": "Popular",
+      "getStarted": "Get Started →"
+    },
+    "pricing": {
+      "sectionTitle": "Simple, Transparent Pricing",
+      "sectionSubtitle": "No monthly fees — pay once, earn for life",
+      "mostPopular": "Most Popular",
+      "getStarted": "Get Started with {plan}",
+      "allPlansInclude": "All plans include"
+    },
+    "footer": {
+      "tagline": "Africa's #1 AI Income Network",
+      "rights": "© 2025 BAUIN. All rights reserved.",
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "contact": "Contact"
+    }
+  },
+  "Register": {
+    "aiIncomeNetwork": "AI Income Network",
+    "stepAccount": "Account",
+    "stepCategories": "Categories",
+    "tips": {
+      "1": "Each category unlocks a dedicated AI tool set",
+      "2": "Earn from daily tasks, quizzes & referrals",
+      "3": "Bundle discount when you select all 7 categories",
+      "4": "30-day access — renewable from your dashboard"
+    },
+    "benefits": {
+      "aiStreams": "AI-powered income streams working 24 / 7",
+      "referralCommission": "50% referral commission on every registration",
+      "dashboard": "Real-time earnings dashboard & analytics",
+      "aiTools": "Exclusive AI tools & certification access",
+      "investment": "Investment pools with tracked returns",
+      "withdrawals": "Same-day wallet withdrawals, zero hidden fees"
+    },
+    "account": {
+      "title": "Create Your Account",
+      "subtitle": "Join 50,000+ Nigerians earning with AI",
+      "fullName": "Full name",
+      "email": "Email address",
+      "password": "Password",
+      "referralCode": "Referral code (optional)",
+      "createAccount": "Create Account",
+      "creating": "Creating…",
+      "alreadyHave": "Already have an account?",
+      "signIn": "Sign in"
+    },
+    "categories": {
+      "title": "Choose Your Income Categories",
+      "subtitle": "Select the AI skills you want to monetise",
+      "bundleLabel": "Select all 7 — Save ₦{discount}",
+      "bundleNote": "Best value: ₦{price} instead of ₦{full}",
+      "nSelected": "{n, plural, one {# category} other {# categories}} selected",
+      "fee": "₦{fee} registration",
+      "monthlyRange": "₦{min}–₦{max}/month",
+      "orderSummary": "Order Summary",
+      "subtotal": "Subtotal",
+      "bundleDiscount": "Bundle discount",
+      "total": "Total",
+      "proceed": "Proceed to Payment",
+      "processing": "Processing…",
+      "noCategories": "Please select at least one category"
+    }
+  },
+  "LanguageSwitcher": {
+    "label": "Language",
+    "en": "English",
+    "yo": "Yorùbá",
+    "ha": "Hausa",
+    "ig": "Igbo"
+  }
+}
