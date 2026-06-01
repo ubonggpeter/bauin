@@ -487,32 +487,55 @@ export default function QuizLobbyPage() {
   const router     = useRouter();
   const { data: authSession } = useSession();
 
-  const [info,    setInfo]    = useState<SessionInfo | null>(null);
-  const [error,   setError]   = useState("");
-  const [joining, setJoining] = useState(false);
-  const [pulse,   setPulse]   = useState(false);
-  const [showBet, setShowBet] = useState(false);
-  const [betDone, setBetDone] = useState(false);
+  const [info,      setInfo]      = useState<SessionInfo | null>(null);
+  const [error,     setError]     = useState("");
+  const [joining,   setJoining]   = useState(false);
+  const [pulse,     setPulse]     = useState(false);
+  const [showBet,   setShowBet]   = useState(false);
+  const [betDone,   setBetDone]   = useState(false);
+  const [winToasts, setWinToasts] = useState<{ name: string; rank: number; id: string }[]>([]);
 
   const countdown = useCountdown(info?.collection.scheduledActivateAt ?? null);
 
-  // Poll every 2 s
+  // Initial full fetch for collection + session + players + prizePool
   useEffect(() => {
-    let mounted = true;
-    async function poll() {
+    fetch(`/api/quiz/${code}`)
+      .then((r) => r.json())
+      .then((data: SessionInfo & { error?: string }) => {
+        if (data.error) setError(data.error);
+        else setInfo(data);
+      })
+      .catch(() => setError("Failed to load session"));
+  }, [code]);
+
+  // SSE stream for live playerCount + status + winners
+  useEffect(() => {
+    const es = new EventSource(`/api/quiz/${code}/players/stream`);
+    es.onmessage = (e: MessageEvent) => {
       try {
-        const res  = await fetch(`/api/quiz/${code}`);
-        const data = await res.json();
-        if (!res.ok) { setError(data.error ?? "Not found"); return; }
+        const payload = JSON.parse(e.data as string) as {
+          playerCount: number;
+          status: string;
+          winners?: { name: string; rank: number }[];
+        };
         setInfo((prev) => {
-          if (prev && data.playerCount !== prev.playerCount) setPulse(true);
-          return data as SessionInfo;
+          if (!prev) return prev;
+          if (payload.playerCount !== prev.playerCount) setPulse(true);
+          return {
+            ...prev,
+            playerCount: payload.playerCount,
+            session: { ...prev.session, status: payload.status },
+          };
         });
-      } catch { /* keep prev */ }
-    }
-    poll();
-    const id = setInterval(poll, 2000);
-    return () => { mounted = false; clearInterval(id); void mounted; };
+        if (payload.winners?.length) {
+          setWinToasts(
+            payload.winners.map((w) => ({ ...w, id: `${w.rank}-${w.name}` })),
+          );
+          setTimeout(() => setWinToasts([]), 12_000);
+        }
+      } catch { /* ignore parse errors */ }
+    };
+    return () => es.close();
   }, [code]);
 
   useEffect(() => {
@@ -560,6 +583,7 @@ export default function QuizLobbyPage() {
       <style>{`
         @keyframes float{from{transform:translateY(0)}to{transform:translateY(-14px)}}
         @keyframes pop{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+        @keyframes slideup{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
       `}</style>
 
       <div className="relative z-10 w-full max-w-md flex flex-col items-center">
@@ -725,6 +749,33 @@ export default function QuizLobbyPage() {
           onClose={() => setShowBet(false)}
           onSuccess={() => { setShowBet(false); setBetDone(true); }}
         />
+      )}
+
+      {/* Win toasts — slide in bottom-left when session ends */}
+      {winToasts.length > 0 && (
+        <div className="fixed bottom-5 left-5 z-50 flex flex-col-reverse gap-2 pointer-events-none">
+          {winToasts.map((w) => (
+            <div
+              key={w.id}
+              className="flex items-center gap-3 bg-white border border-gray-100 rounded-2xl shadow-xl px-4 py-3 max-w-[280px]"
+              style={{ animation: "slideup 0.5s ease-out" }}
+            >
+              <span className="text-2xl flex-shrink-0">
+                {w.rank === 1 ? "🏆" : w.rank === 2 ? "🥈" : "🥉"}
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900 leading-snug">
+                  <span className="text-primary">{w.name}</span>
+                  {" finished "}
+                  <span className="font-black text-gold">
+                    {w.rank === 1 ? "1st" : w.rank === 2 ? "2nd" : "3rd"}!
+                  </span>
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">Quiz winner 🎉</p>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

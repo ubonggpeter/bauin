@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { animate, motion, useInView } from "framer-motion";
+import SocialProofToast from "@/components/SocialProofToast";
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -829,6 +830,7 @@ export default function MarketingPage() {
         <Pricing />
       </main>
       <Footer />
+      <SocialProofToast />
     </div>
   );
 }
