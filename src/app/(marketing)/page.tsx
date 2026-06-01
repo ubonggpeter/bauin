@@ -698,6 +698,117 @@ function Footer() {
   );
 }
 
+// ── Earnings Proof (landing section) ─────────────────────────────────────────
+
+type EarningsProofData = {
+  total:     number;
+  breakdown: { key: string; label: string; icon: string; amount: number }[];
+};
+
+const ACCENT_BAR: Record<string, string> = {
+  jobs:      "bg-teal-500",
+  stories:   "bg-purple-500",
+  quiz:      "bg-amber-500",
+  referrals: "bg-green-500",
+  betting:   "bg-orange-500",
+};
+
+const ACCENT_TEXT: Record<string, string> = {
+  jobs:      "text-teal-600",
+  stories:   "text-purple-600",
+  quiz:      "text-amber-600",
+  referrals: "text-green-600",
+  betting:   "text-orange-600",
+};
+
+function EarningsProofSection() {
+  const [data, setData]       = useState<EarningsProofData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const ref    = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-80px" });
+
+  useEffect(() => {
+    fetch("/api/earnings-proof")
+      .then((r) => r.json())
+      .then((d: EarningsProofData) => setData(d))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const total     = data?.total ?? 0;
+  const breakdown = data?.breakdown ?? [];
+  const count     = useCountUp(total, inView && !loading);
+
+  return (
+    <section className="py-20 bg-[#070F0D] overflow-hidden">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 bg-teal-900/40 border border-teal-700/50 rounded-full px-4 py-1.5 mb-6">
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-teal-300 text-xs font-bold tracking-widest uppercase">Verified Platform Totals</span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-black text-white">Total Paid to Workers</h2>
+          <div ref={ref} className="text-5xl sm:text-6xl font-black text-amber-400 mt-4 tracking-tight">
+            {loading
+              ? <span className="animate-pulse text-white/20">₦ —</span>
+              : `₦${count.toLocaleString("en-NG")}`}
+          </div>
+          <p className="text-gray-500 text-sm mt-3">Aggregated totals · no individual data shown</p>
+        </div>
+
+        {/* Breakdown */}
+        {!loading && breakdown.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-10">
+            {breakdown.map((b, i) => {
+              const pct  = total > 0 ? (b.amount / total) * 100 : 0;
+              const bar  = ACCENT_BAR[b.key]  ?? "bg-teal-500";
+              const text = ACCENT_TEXT[b.key] ?? "text-teal-600";
+              return (
+                <motion.div
+                  key={b.key}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={inView ? { opacity: 1, y: 0 } : {}}
+                  transition={{ delay: 0.1 + i * 0.08, duration: 0.5 }}
+                  className="bg-white/5 border border-white/8 rounded-xl p-4"
+                >
+                  <div className="text-xl mb-1">{b.icon}</div>
+                  <div className={`text-sm font-black ${text}`}>
+                    ₦{(b.amount / 1_000_000).toFixed(1)}M
+                  </div>
+                  <div className="text-gray-500 text-[11px] mb-2">{b.label}</div>
+                  <div className="h-1 bg-white/10 rounded-full">
+                    <motion.div
+                      className={`h-full rounded-full ${bar}`}
+                      initial={{ width: 0 }}
+                      animate={inView ? { width: `${pct}%` } : {}}
+                      transition={{ delay: 0.3 + i * 0.08, duration: 1, ease: "easeOut" }}
+                    />
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Link to full page */}
+        <div className="text-center">
+          <a
+            href="/earnings-proof"
+            className="inline-flex items-center gap-2 text-teal-400 hover:text-teal-300 text-sm font-semibold transition-colors"
+          >
+            View full earnings breakdown
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function MarketingPage() {
@@ -710,6 +821,7 @@ export default function MarketingPage() {
         <HowItWorks />
         <Categories />
         <ReferralBanner />
+        <EarningsProofSection />
         <Testimonials />
         <Pricing />
       </main>
