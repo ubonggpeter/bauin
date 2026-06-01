@@ -50,6 +50,18 @@ enum FraudSeverity {
   HIGH
 }
 
+enum FraudFlagStatus {
+  PENDING
+  CONFIRMED
+  DISMISSED
+}
+
+enum FraudAppealStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum RetryPolicy {
   IMMEDIATE
   AFTER_24H
@@ -248,6 +260,7 @@ model User {
   pushSubscriptions      PushSubscription[]
   kycDocument            KycDocument?
   fraudFlags             FraudFlag[]
+  fraudAppeals           FraudAppeal[]
   postedJobs             Job[]             @relation("JobPoster")
   assignedJobs           Job[]             @relation("JobWorker")
   jobApplications        JobApplication[]  @relation("JobApplications")
@@ -1172,22 +1185,44 @@ model KycDocument {
 // ╚══════════════════════════════════════════════╝
 
 model FraudFlag {
-  id           String        @id @default(cuid())
-  userId       String        @map("user_id")
-  user         User          @relation(fields: [userId], references: [id])
+  id           String          @id @default(cuid())
+  userId       String          @map("user_id")
+  user         User            @relation(fields: [userId], references: [id])
   type         FraudFlagType
   severity     FraudSeverity
-  evidence     Json          // { ip?, quizSessionId?, phone?, count?, answerTimeMs? }
-  resolved     Boolean       @default(false)
-  resolvedAt   DateTime?     @map("resolved_at")
-  resolvedById String?       @map("resolved_by_id")
-  note         String?       @db.Text
-  createdAt    DateTime      @default(now()) @map("created_at")
+  evidence     Json            // { ip?, quizSessionId?, phone?, count?, answerTimeMs? }
+  status       FraudFlagStatus @default(PENDING)
+  resolved     Boolean         @default(false)
+  resolvedAt   DateTime?       @map("resolved_at")
+  resolvedById String?         @map("resolved_by_id")
+  note         String?         @db.Text
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  appeals      FraudAppeal[]
 
   @@index([userId])
-  @@index([type, resolved])
-  @@index([severity, resolved])
+  @@index([type, status])
+  @@index([severity, status])
   @@map("fraud_flags")
+}
+
+model FraudAppeal {
+  id           String            @id @default(cuid())
+  flagId       String            @map("flag_id")
+  flag         FraudFlag         @relation(fields: [flagId], references: [id])
+  userId       String            @map("user_id")
+  user         User              @relation(fields: [userId], references: [id])
+  reason       String            @db.Text
+  status       FraudAppealStatus @default(PENDING)
+  reviewNote   String?           @db.Text @map("review_note")
+  reviewedById String?           @map("reviewed_by_id")
+  reviewedAt   DateTime?         @map("reviewed_at")
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  @@index([flagId])
+  @@index([userId])
+  @@index([status])
+  @@map("fraud_appeals")
 }
 
 // ╔══════════════════════════════════════════════╗
