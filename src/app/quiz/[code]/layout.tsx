@@ -19,7 +19,7 @@ export async function generateMetadata({
           episode: {
             include: {
               story: {
-                select: { title: true, description: true, coverUrl: true },
+                select: { title: true, description: true },
               },
             },
           },
@@ -45,10 +45,10 @@ export async function generateMetadata({
   const description =
     story?.description ??
     `Join the live BAUIN quiz for "${quizTitle}". Answer questions across 5 game phases, beat other players, and win cash prizes. Entry is open now.`;
-  const coverUrl    = story?.coverUrl ?? null;
-  const pageUrl     = `${APP_URL}/quiz/${code}`;
-  const ogTitle     = `${quizTitle} — Live Quiz | BAUIN`;
-  const ogDesc      = `🎯 Live quiz open now! Compete in "${quizTitle}", play 5 game phases, and win real cash prizes. Click to join before it fills up.`;
+  const pageUrl  = `${APP_URL}/quiz/${code}`;
+  const ogTitle  = `${quizTitle} — Live Quiz | BAUIN`;
+  const ogDesc   = `🎯 Live quiz open now! Compete in "${quizTitle}", play 5 game phases, and win real cash prizes. Click to join before it fills up.`;
+  const ogImage  = `${APP_URL}/api/quiz/${code}/og`;
 
   return {
     title:   `${quizTitle} — Live Quiz`,
@@ -60,15 +60,13 @@ export async function generateMetadata({
       siteName:    "BAUIN",
       title:       ogTitle,
       description: ogDesc,
-      images: coverUrl
-        ? [{ url: coverUrl, width: 1200, height: 630, alt: quizTitle }]
-        : [{ url: `${APP_URL}/icons/icon-512.png`, width: 512, height: 512, alt: "BAUIN" }],
+      images:      [{ url: ogImage, width: 1200, height: 630, alt: ogTitle }],
     },
     twitter: {
-      card:        coverUrl ? "summary_large_image" : "summary",
+      card:        "summary_large_image",
       title:       ogTitle,
       description: ogDesc,
-      images:      coverUrl ? [coverUrl] : [`${APP_URL}/icons/icon-512.png`],
+      images:      [ogImage],
     },
   };
 }
