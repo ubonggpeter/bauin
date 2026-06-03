@@ -52,6 +52,12 @@ enum AnnouncementTarget {
   VIEWERS
 }
 
+enum WorkerStatus {
+  AVAILABLE
+  BUSY
+  ON_LEAVE
+}
+
 enum FraudFlagType {
   RAPID_ANSWERS       // any answer submitted under 0.8 s
   SAME_IP_QUIZ_REPLAY // same IP joins same quiz 3+ times in one day
@@ -229,8 +235,9 @@ model User {
   referredById  String?   @map("referred_by_id")
   referredBy    User?     @relation("UserReferrals", fields: [referredById], references: [id])
   referrals     User[]    @relation("UserReferrals")
-  kycStatus     KycStatus @default(PENDING) @map("kyc_status")
-  rank          UserRank  @default(MEMBER)
+  kycStatus     KycStatus    @default(PENDING) @map("kyc_status")
+  rank          UserRank     @default(MEMBER)
+  workerStatus  WorkerStatus @default(AVAILABLE) @map("worker_status")
   walletBalance Decimal   @default(0) @db.Decimal(18, 2) @map("wallet_balance")
   phoneNumber   String?   @map("phone_number")
   country       String?

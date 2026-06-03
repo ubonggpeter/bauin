@@ -44,6 +44,20 @@ export async function POST(
     data:  { status: "ASSIGNED", assignedWorkerId: body.workerId },
   });
 
+  // Auto-set BUSY when worker reaches 3+ active (ASSIGNED + SUBMITTED) jobs
+  const activeCount = await prisma.job.count({
+    where: {
+      assignedWorkerId: body.workerId,
+      status:           { in: ["ASSIGNED", "SUBMITTED"] },
+    },
+  });
+  if (activeCount >= 3) {
+    await prisma.user.update({
+      where: { id: body.workerId },
+      data:  { workerStatus: "BUSY" },
+    });
+  }
+
   // Notify worker
   prisma.notification.create({
     data: {

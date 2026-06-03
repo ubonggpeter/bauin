@@ -24,12 +24,27 @@ type Job = {
   submissionNote?: string | null;
 };
 
+type WorkerStatus = "AVAILABLE" | "BUSY" | "ON_LEAVE";
+
 type Applicant = {
   id:        string;
   workerId:  string;
   coverNote: string | null;
   createdAt: string;
-  worker:    { id: string; name: string; avatarUrl: string | null };
+  worker: {
+    id:           string;
+    name:         string;
+    avatarUrl:    string | null;
+    workerStatus: WorkerStatus;
+    achievements: { achievement: { key: string; name: string; icon: string } }[];
+    _count:       { assignedJobs: number };
+  };
+};
+
+const WORKER_STATUS_CFG: Record<WorkerStatus, { label: string; dot: string; badge: string }> = {
+  AVAILABLE: { label: "Available",  dot: "bg-teal-400",   badge: "bg-teal-50 text-teal-700 border-teal-200"     },
+  BUSY:      { label: "Busy",       dot: "bg-orange-400", badge: "bg-orange-50 text-orange-700 border-orange-200" },
+  ON_LEAVE:  { label: "On Leave",   dot: "bg-gray-400",   badge: "bg-gray-100 text-gray-500 border-gray-200"     },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -123,6 +138,7 @@ function BuyerJobCard({
   const [showApplicants, setShowApplicants] = useState(false);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [loadingApps, setLoadingApps] = useState(false);
+  const [availableOnly, setAvailableOnly] = useState(false);
 
   async function loadApplicants() {
     if (applicants.length > 0) { setShowApplicants((v) => !v); return; }
@@ -205,37 +221,86 @@ function BuyerJobCard({
       </div>
 
       {/* Applicant list */}
-      {showApplicants && applicants.length > 0 && (
-        <div className="mt-4 border-t border-border pt-4 space-y-3">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Applicants</p>
-          {applicants.map((a) => (
-            <div key={a.id} className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black flex-shrink-0">
-                  {a.worker.name[0]?.toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-text-dark truncate">{a.worker.name}</p>
-                  {a.coverNote && (
-                    <p className="text-[11px] text-gray-500 truncate">{a.coverNote}</p>
-                  )}
-                </div>
-              </div>
-              {job.status === "OPEN" && (
-                <button
-                  onClick={() => onAction("assign", job.id, { workerId: a.worker.id })}
-                  disabled={loading === job.id + "assign"}
-                  className="text-[11px] font-bold px-3 py-1 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors flex-shrink-0 disabled:opacity-60"
-                >
-                  Assign
-                </button>
-              )}
-            </div>
-          ))}
+      {showApplicants && (
+        <div className="mt-4 border-t border-border pt-4">
+          {/* Header + Available Now filter */}
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+              Applicants ({applicants.length})
+            </p>
+            {applicants.length > 0 && (
+              <button
+                onClick={() => setAvailableOnly((v) => !v)}
+                className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all ${
+                  availableOnly
+                    ? "bg-teal-50 text-teal-700 border-teal-300"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-teal-300"
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />
+                Available Now
+              </button>
+            )}
+          </div>
+
+          {/* Applicant rows */}
+          <div className="space-y-2.5">
+            {applicants
+              .filter((a) => !availableOnly || a.worker.workerStatus === "AVAILABLE")
+              .map((a) => {
+                const sCfg      = WORKER_STATUS_CFG[a.worker.workerStatus ?? "AVAILABLE"];
+                const isReliable = a.worker.achievements?.some((ua) => ua.achievement.key === "RELIABLE");
+                return (
+                  <div key={a.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      {/* Avatar with status dot */}
+                      <div className="relative flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[11px] font-black">
+                          {a.worker.name[0]?.toUpperCase()}
+                        </div>
+                        <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${sCfg.dot}`} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-xs font-semibold text-text-dark truncate">{a.worker.name}</p>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${sCfg.badge}`}>
+                            {sCfg.label}
+                          </span>
+                          {isReliable && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                              🌟 Reliable
+                            </span>
+                          )}
+                        </div>
+                        {a.coverNote && (
+                          <p className="text-[11px] text-gray-500 truncate mt-0.5">{a.coverNote}</p>
+                        )}
+                        {(a.worker._count?.assignedJobs ?? 0) > 0 && (
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            {a.worker._count.assignedJobs} job{a.worker._count.assignedJobs !== 1 ? "s" : ""} completed
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {job.status === "OPEN" && (
+                      <button
+                        onClick={() => onAction("assign", job.id, { workerId: a.worker.id })}
+                        disabled={loading === job.id + "assign"}
+                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors flex-shrink-0 disabled:opacity-60"
+                      >
+                        Assign
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            {applicants.filter((a) => !availableOnly || a.worker.workerStatus === "AVAILABLE").length === 0 && (
+              <p className="text-xs text-gray-400 italic py-2">
+                {availableOnly ? "No available applicants right now." : "No applicants yet."}
+              </p>
+            )}
+          </div>
         </div>
-      )}
-      {showApplicants && applicants.length === 0 && (
-        <p className="mt-3 text-xs text-gray-400 italic">No applicants yet.</p>
       )}
     </div>
   );

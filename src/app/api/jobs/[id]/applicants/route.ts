@@ -35,7 +35,16 @@ export async function GET(
           id:           true,
           name:         true,
           avatarUrl:    true,
+          workerStatus: true,
           certificates: { select: { categoryId: true } },
+          achievements: {
+            include: { achievement: { select: { key: true, name: true, icon: true } } },
+          },
+          _count: {
+            select: {
+              assignedJobs: { where: { status: "APPROVED" } },
+            },
+          },
         },
       },
     },

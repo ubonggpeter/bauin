@@ -10,7 +10,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { creditWallet } from "@/lib/server/wallet";
 import { getAllSettings } from "@/lib/server/platform-settings";
-import { checkAchievements, checkEarningsMilestones } from "@/lib/server/achievements";
+import { checkAchievements, checkEarningsMilestones, checkReliableBadge } from "@/lib/server/achievements";
 
 export const dynamic = "force-dynamic";
 
@@ -54,9 +54,24 @@ export async function POST(
     data:  { status: "APPROVED", approvedAt: new Date() },
   });
 
+  // Auto-clear BUSY if worker now has fewer than 3 active jobs (and isn't on leave)
+  const remaining = await prisma.job.count({
+    where: {
+      assignedWorkerId: job.assignedWorkerId,
+      status:           { in: ["ASSIGNED", "SUBMITTED"] },
+    },
+  });
+  if (remaining < 3) {
+    await prisma.user.updateMany({
+      where: { id: job.assignedWorkerId, workerStatus: "BUSY" },
+      data:  { workerStatus: "AVAILABLE" },
+    });
+  }
+
   // Achievements + earnings milestone checks
   checkAchievements(job.assignedWorkerId, { type: "JOB_COMPLETED" }).catch(() => {});
   checkEarningsMilestones(job.assignedWorkerId).catch(() => {});
+  checkReliableBadge(job.assignedWorkerId).catch(() => {});
 
   // Notify worker
   prisma.notification.create({

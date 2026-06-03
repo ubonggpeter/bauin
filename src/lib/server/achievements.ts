@@ -18,6 +18,7 @@ const CATALOG = [
   { key: "EARNER_50K",    name: "₦50K Club",             description: "Earned a total of ₦50,000",                  icon: "💰" },
   { key: "EARNER_500K",   name: "₦500K Elite",           description: "Earned a total of ₦500,000",                 icon: "💎" },
   { key: "JOB_DONE",      name: "Job Done",              description: "Completed your first job",                   icon: "✅" },
+  { key: "RELIABLE",      name: "Reliable",              description: "Completed 20+ jobs all submitted on time",    icon: "🌟" },
 ] as const;
 
 type CatalogKey = typeof CATALOG[number]["key"];
@@ -100,6 +101,7 @@ export async function checkAchievements(
 
       case "JOB_COMPLETED":
         await grantAchievement(userId, "JOB_DONE");
+        await checkReliableBadge(userId);
         break;
 
       case "STORY_SOLD":
@@ -214,6 +216,43 @@ export async function checkEarningsMilestones(userId: string): Promise<void> {
     }
   } catch (err) {
     console.error("[achievements] checkEarningsMilestones error:", err);
+  }
+}
+
+// ── Reliable badge ─────────────────────────────────────────────────────────────
+// Awarded once a worker has 20+ APPROVED jobs where submittedAt <= deadline.
+
+export async function checkReliableBadge(userId: string): Promise<void> {
+  try {
+    if (await alreadyEarned(userId, "RELIABLE")) return;
+
+    const onTimeCount = await prisma.job.count({
+      where: {
+        assignedWorkerId: userId,
+        status:           "APPROVED",
+        submittedAt:      { not: null },
+        // submittedAt <= deadline — Prisma doesn't support cross-field comparison
+        // so we fetch the count via raw condition
+      },
+    });
+
+    if (onTimeCount < 20) return;
+
+    // Verify each one was on time (submittedAt <= deadline)
+    const jobs = await prisma.job.findMany({
+      where:  { assignedWorkerId: userId, status: "APPROVED", submittedAt: { not: null } },
+      select: { submittedAt: true, deadline: true },
+    });
+
+    const onTime = jobs.filter(
+      (j) => j.submittedAt !== null && j.submittedAt <= j.deadline,
+    );
+
+    if (onTime.length >= 20) {
+      await grantAchievement(userId, "RELIABLE");
+    }
+  } catch (err) {
+    console.error("[achievements] checkReliableBadge error:", err);
   }
 }
 
