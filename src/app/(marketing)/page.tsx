@@ -607,6 +607,93 @@ function Pricing() {
   );
 }
 
+// ── Email Capture ─────────────────────────────────────────────────────────────
+
+function EmailCapture() {
+  const [email,     setEmail]     = useState("");
+  const [status,    setStatus]    = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [errorMsg,  setErrorMsg]  = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setStatus("loading");
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/subscribe", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email: email.trim(), source: "LANDING" }),
+      });
+      if (!res.ok) {
+        const j = await res.json() as { error?: string };
+        throw new Error(j.error ?? "Something went wrong");
+      }
+      setStatus("done");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
+      setStatus("error");
+    }
+  }
+
+  return (
+    <section id="newsletter" className="py-20 bg-gradient-to-br from-[#0D3D32] via-[#1A6659] to-[#0a2a22] relative overflow-hidden">
+      {/* Decorative circles */}
+      <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/5 pointer-events-none" />
+      <div className="absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-white/5 pointer-events-none" />
+
+      <div className="relative max-w-2xl mx-auto px-4 text-center">
+        <div className="inline-block bg-[#F0B429]/20 text-[#F0B429] text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">
+          Free Weekly Earnings Tips
+        </div>
+        <h2 className="text-3xl sm:text-4xl font-black text-white mb-4 leading-tight">
+          Get the BAUIN playbook<br />
+          <span className="text-[#F0B429]">delivered to your inbox</span>
+        </h2>
+        <p className="text-white/70 text-base mb-8 leading-relaxed">
+          Join 2,000+ subscribers. We send 3 emails — what BAUIN is, real earnings examples,
+          and your personal referral link. No spam. Unsubscribe anytime.
+        </p>
+
+        {status === "done" ? (
+          <div className="inline-flex items-center gap-3 bg-white/10 border border-white/20 rounded-2xl px-7 py-4">
+            <span className="text-2xl">✅</span>
+            <div className="text-left">
+              <p className="text-white font-semibold text-sm">You&apos;re on the list!</p>
+              <p className="text-white/60 text-xs">Check your inbox for the first email.</p>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email address"
+              className="flex-1 rounded-full px-5 py-3.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#F0B429] bg-white"
+            />
+            <button
+              type="submit"
+              disabled={status === "loading"}
+              className="bg-[#F0B429] hover:bg-[#d4a017] disabled:opacity-70 text-[#1A1A2E] font-bold text-sm px-7 py-3.5 rounded-full transition-colors whitespace-nowrap shadow-lg shadow-[#F0B429]/30"
+            >
+              {status === "loading" ? "…" : "Get the Playbook"}
+            </button>
+          </form>
+        )}
+
+        {status === "error" && (
+          <p className="mt-3 text-red-300 text-sm">{errorMsg}</p>
+        )}
+
+        <p className="mt-5 text-white/40 text-xs">
+          3 emails over 7 days. No spam. Unsubscribe in one click.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 // ── Footer ────────────────────────────────────────────────────────────────────
 
 const FOOTER_SOCIAL = [
@@ -828,6 +915,7 @@ export default function MarketingPage() {
         <EarningsProofSection />
         <Testimonials />
         <Pricing />
+        <EmailCapture />
       </main>
       <Footer />
       <SocialProofToast />

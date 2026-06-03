@@ -1492,3 +1492,37 @@ model TournamentBet {
   @@index([userId])
   @@map("tournament_bets")
 }
+
+// ╔══════════════════════════════════════════════╗
+// ║          EMAIL CAPTURE & CAMPAIGNS           ║
+// ╚══════════════════════════════════════════════╝
+
+model EmailSubscriber {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String?
+  source         String    @default("LANDING")
+  welcomeStep    Int       @default(0) @map("welcome_step")
+  nextWelcomeAt  DateTime?             @map("next_welcome_at")
+  unsubToken     String    @unique @default(cuid()) @map("unsub_token")
+  subscribedAt   DateTime  @default(now()) @map("subscribed_at")
+  unsubscribedAt DateTime?             @map("unsubscribed_at")
+
+  @@index([nextWelcomeAt])
+  @@index([welcomeStep])
+  @@map("email_subscribers")
+}
+
+model EmailCampaign {
+  id             String    @id @default(cuid())
+  subject        String
+  previewText    String?   @map("preview_text")
+  bodyText       String    @db.Text @map("body_text")
+  createdBy      String    @map("created_by")
+  sentAt         DateTime?             @map("sent_at")
+  recipientCount Int       @default(0) @map("recipient_count")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([createdAt(sort: Desc)])
+  @@map("email_campaigns")
+}
