@@ -103,6 +103,14 @@ enum CorrectOption {
   D
 }
 
+enum ReportReason {
+  ADULT_CONTENT
+  SCAM
+  COPYRIGHT
+  HATE_SPEECH
+  OTHER
+}
+
 enum TransactionType {
   DEPOSIT
   WITHDRAWAL
@@ -254,6 +262,8 @@ model User {
   loginStreakUpdatedAt DateTime? @map("login_streak_updated_at")
   ninHash              String?   @unique @map("nin_hash")
   fraudSuspendedAt     DateTime? @map("fraud_suspended_at")
+  sellerSuspendedAt    DateTime? @map("seller_suspended_at")
+  sellerBannedAt       DateTime? @map("seller_banned_at")
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
 
@@ -298,6 +308,9 @@ model User {
   subscribers            SellerSubscription[] @relation("SellerSubscribers")
   tournamentEntries      TournamentEntry[]
   tournamentBets         TournamentBet[]
+  storyReports           StoryReport[]     @relation("ReportReporter")
+  strikesReceived        StoryStrike[]     @relation("StrikeAuthor")
+  strikesIssued          StoryStrike[]     @relation("StrikeIssuer")
 
   @@index([referredById])
   @@index([referralCode])
@@ -551,6 +564,7 @@ model Story {
   tags           String[]
   royaltyEnabled Boolean  @default(false) @map("royalty_enabled")
   royaltyPct     Decimal  @default(0) @db.Decimal(5, 2) @map("royalty_pct")
+  reportCount    Int      @default(0) @map("report_count")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -558,8 +572,11 @@ model Story {
   purchases     StoryPurchase[]
   bundleItems   StoryBundleItem[]
   collaborators StoryCollaborator[]
+  reports       StoryReport[]
+  strikes       StoryStrike[]
 
   @@index([niche])
+  @@index([reportCount(sort: Desc)])
   @@map("stories")
 }
 
@@ -1491,6 +1508,46 @@ model TournamentBet {
   @@index([tournamentId])
   @@index([userId])
   @@map("tournament_bets")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║           STORY REPORTS & STRIKES            ║
+// ╚══════════════════════════════════════════════╝
+
+model StoryReport {
+  id           String       @id @default(cuid())
+  storyId      String       @map("story_id")
+  story        Story        @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  reporterId   String       @map("reporter_id")
+  reporter     User         @relation("ReportReporter", fields: [reporterId], references: [id])
+  reason       ReportReason
+  details      String?      @db.Text
+  status       String       @default("PENDING")
+  reviewedAt   DateTime?    @map("reviewed_at")
+  reviewedById String?      @map("reviewed_by_id")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  @@unique([storyId, reporterId])
+  @@index([storyId])
+  @@index([status])
+  @@map("story_reports")
+}
+
+model StoryStrike {
+  id           String   @id @default(cuid())
+  storyId      String   @map("story_id")
+  story        Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  authorId     String   @map("author_id")
+  author       User     @relation("StrikeAuthor", fields: [authorId], references: [id])
+  strikeNumber Int      @map("strike_number")
+  note         String   @db.Text
+  issuedById   String   @map("issued_by_id")
+  issuedBy     User     @relation("StrikeIssuer", fields: [issuedById], references: [id])
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([authorId])
+  @@index([storyId])
+  @@map("story_strikes")
 }
 
 // ╔══════════════════════════════════════════════╗

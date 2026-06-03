@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { usePaystackPayment } from "react-paystack";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import ReportStoryButton from "@/components/ReportStoryButton";
 
 // ── Types ──────────────────────────────────────────────────────────
 type Player = { id: string; userId: string; name: string };
@@ -15,6 +16,7 @@ type SessionInfo = {
     isInUse: boolean; scheduledActivateAt: string | null; hostName: string;
     ctaText: string | null; accentColor: string | null;
     logoUrl: string | null; welcomeMessage: string | null;
+    storyId: string | null;
   };
   session:    { id: string; status: string; title: string };
   playerCount: number;
@@ -617,7 +619,14 @@ export default function QuizLobbyPage() {
                 {info.collection.welcomeMessage ?? info.collection.description}
               </p>
             )}
-            <div className="absolute top-6 right-6">
+            <div className="absolute top-6 right-6 flex items-center gap-2">
+              {info?.collection.storyId && (
+                <ReportStoryButton
+                  storyId={info.collection.storyId}
+                  storyTitle={info.session.title ?? info.collection.name}
+                  className="p-1.5 rounded-full bg-white/10 text-white/50 hover:text-white/90 hover:bg-white/20 transition-colors"
+                />
+              )}
               {ended ? (
                 <span className="px-3 py-1 bg-red-500/20 border border-red-400/40 rounded-full text-red-300 text-xs font-semibold">{t("statusEnded")}</span>
               ) : canPlay ? (

@@ -55,8 +55,9 @@ export async function GET(
     },
     orderBy: { createdAt: "desc" },
     include: {
-      _count:  { select: { entries: true } },
-      bets:    { select: { stake: true } },
+      _count:   { select: { entries: true } },
+      bets:     { select: { stake: true } },
+      episode:  { select: { storyId: true } },
       entries: {
         include: { user: { select: { id: true, name: true } } },
         orderBy: { createdAt: "asc" },
@@ -74,6 +75,7 @@ export async function GET(
       include: {
         _count:  { select: { entries: true } },
         bets:    { select: { stake: true } },
+        episode: { select: { storyId: true } },
         entries: {
           include: { user: { select: { id: true, name: true } } },
           orderBy: { createdAt: "asc" },
@@ -93,6 +95,8 @@ export async function GET(
     userId: e.userId,
     name:   e.user?.name ?? `Player ${e.id.slice(-4)}`,
   }));
+
+  const storyId = session.episode?.storyId ?? null;
 
   const cached2 = await buildAndCacheSession({
     session:    { ...session, episodeId: session.episodeId ?? null },
@@ -117,6 +121,7 @@ export async function GET(
       accentColor:         collection.accentColor ?? null,
       logoUrl:             collection.logoUrl     ?? null,
       welcomeMessage:      collection.welcomeMessage ?? null,
+      storyId:             storyId,
     },
     session: {
       id:        cached2.sessionId,

@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import ReportStoryButton from "@/components/ReportStoryButton";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
@@ -324,31 +325,41 @@ function StarRating({ rating }: { rating: number }) {
 
 function StoryCard({ story }: { story: Story }) {
   return (
-    <Link href={`/dashboard/stories/${story.id}`} className="group flex flex-col">
+    <div className="group flex flex-col">
       {/* Cover */}
       <div className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden mb-3 shadow-sm group-hover:shadow-md transition-shadow">
-        <div className={`absolute inset-0 bg-gradient-to-b ${story.coverGradient}`} />
-        {/* Emoji centered */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-5xl drop-shadow-lg">{story.coverEmoji}</span>
-        </div>
-        {/* Episode count badge */}
-        <div className="absolute bottom-3 left-3 bg-black/40 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
-          {story.episodeCount} episodes
-        </div>
-        {/* Royalty badge */}
-        {story.royalty && (
-          <div className="absolute top-3 right-3 flex items-center gap-1 bg-gold text-[10px] font-black text-text-dark px-2 py-0.5 rounded-full shadow">
-            <svg viewBox="0 0 20 20" fill="currentColor" className="w-2.5 h-2.5">
-              <path d="M3 5l7-3 7 3v8l-7 3-7-3V5z" />
-            </svg>
-            ROYALTY
+        <Link href={`/dashboard/stories/${story.id}`} className="absolute inset-0">
+          <div className={`absolute inset-0 bg-gradient-to-b ${story.coverGradient}`} />
+          {/* Emoji centered */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-5xl drop-shadow-lg">{story.coverEmoji}</span>
           </div>
-        )}
+          {/* Episode count badge */}
+          <div className="absolute bottom-3 left-3 bg-black/40 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+            {story.episodeCount} episodes
+          </div>
+          {/* Royalty badge */}
+          {story.royalty && (
+            <div className="absolute top-3 right-3 flex items-center gap-1 bg-gold text-[10px] font-black text-text-dark px-2 py-0.5 rounded-full shadow">
+              <svg viewBox="0 0 20 20" fill="currentColor" className="w-2.5 h-2.5">
+                <path d="M3 5l7-3 7 3v8l-7 3-7-3V5z" />
+              </svg>
+              ROYALTY
+            </div>
+          )}
+        </Link>
+        {/* Report button — top-left, outside the story link */}
+        <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <ReportStoryButton
+            storyId={story.id}
+            storyTitle={story.title}
+            className="p-1.5 rounded-full bg-black/50 backdrop-blur-sm text-white/70 hover:text-red-400 hover:bg-black/70 transition-colors"
+          />
+        </div>
       </div>
 
       {/* Info */}
-      <div className="flex-1 min-w-0">
+      <Link href={`/dashboard/stories/${story.id}`} className="flex-1 min-w-0 block">
         <h3 className="text-sm font-bold text-text-dark leading-snug line-clamp-2 mb-1.5 group-hover:text-primary transition-colors">
           {story.title}
         </h3>
@@ -365,8 +376,8 @@ function StoryCard({ story }: { story: Story }) {
             <span className="text-[10px] text-gray-400">({story.buyers})</span>
           </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
 
