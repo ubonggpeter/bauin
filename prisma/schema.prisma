@@ -122,6 +122,7 @@ enum TransactionType {
   JOB_ESCROW
   JOB_PAYMENT
   AFFILIATE_BONUS
+  MILESTONE_BONUS
 }
 
 enum TransactionStatus {
@@ -1014,6 +1015,24 @@ model PlatformSettings {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("platform_settings")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║              MILESTONES                      ║
+// ╚══════════════════════════════════════════════╝
+
+model Milestone {
+  id              String   @id @default(cuid())
+  type            String   @unique
+  label           String
+  headline        String
+  hitAt           DateTime @default(now()) @map("hit_at")
+  bannerExpiresAt DateTime @map("banner_expires_at")
+  bonusPaid       Boolean  @default(false) @map("bonus_paid")
+  usersRewarded   Int      @default(0)     @map("users_rewarded")
+
+  @@index([bannerExpiresAt])
+  @@map("milestones")
 }
 
 // ╔══════════════════════════════════════════════╗

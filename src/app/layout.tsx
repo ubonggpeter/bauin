@@ -5,6 +5,7 @@ import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistratio
 import InstallBanner from "@/components/pwa/InstallBanner";
 import PushManager from "@/components/pwa/PushManager";
 import MaintenanceOverlay from "@/components/MaintenanceOverlay";
+import MilestoneBanner from "@/components/MilestoneBanner";
 import { JsonLd } from "@/components/JsonLd";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { NextIntlClientProvider } from "next-intl";
@@ -153,6 +154,7 @@ export default async function RootLayout({
       <body className={inter.className}>
         <ThemeProvider>
           <NextIntlClientProvider locale={locale} messages={messages}>
+            <MilestoneBanner />
             {children}
             <MaintenanceOverlay />
             <ServiceWorkerRegistration />

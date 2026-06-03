@@ -19,6 +19,12 @@ const CATALOG = [
   { key: "EARNER_500K",   name: "₦500K Elite",           description: "Earned a total of ₦500,000",                 icon: "💎" },
   { key: "JOB_DONE",      name: "Job Done",              description: "Completed your first job",                   icon: "✅" },
   { key: "RELIABLE",      name: "Reliable",              description: "Completed 20+ jobs all submitted on time",    icon: "🌟" },
+  // ── Platform milestones ──────────────────────────────────────────────────────
+  { key: "MS_USERS_100",  name: "Pioneer",               description: "Active when BAUIN reached 100 members",        icon: "🌱" },
+  { key: "MS_USERS_1K",   name: "Early Adopter",         description: "Active when BAUIN reached 1,000 members",      icon: "🚀" },
+  { key: "MS_USERS_10K",  name: "Community Builder",     description: "Active when BAUIN reached 10,000 members",     icon: "🌍" },
+  { key: "MS_PAID_1M",    name: "₦1M Club",              description: "Active when BAUIN paid out ₦1,000,000",        icon: "💰" },
+  { key: "MS_PAID_100M",  name: "₦100M Legend",          description: "Active when BAUIN paid out ₦100,000,000",      icon: "💎" },
 ] as const;
 
 type CatalogKey = typeof CATALOG[number]["key"];
@@ -260,4 +266,10 @@ export async function checkReliableBadge(userId: string): Promise<void> {
 
 export function getAchievementCatalog() {
   return CATALOG.map((a) => ({ ...a }));
+}
+
+// ── Grant by key (used by milestones system) ───────────────────────────────────
+
+export async function grantAchievementByKey(userId: string, key: CatalogKey): Promise<boolean> {
+  return grantAchievement(userId, key);
 }
