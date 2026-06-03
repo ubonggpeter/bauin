@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getBoolSetting } from "@/lib/server/platform-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,13 @@ export async function POST(
   }
   const userId = session.user.id;
   const { code } = params;
+
+  if (await getBoolSetting("SYSTEM_PAUSE_BETTING", false)) {
+    return NextResponse.json(
+      { error: "Betting is temporarily paused. Please check back shortly." },
+      { status: 503 },
+    );
+  }
 
   let body: BetBody;
   try { body = await req.json(); }

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { extractIp, checkIpQuizReplay } from "@/lib/server/fraud";
+import { getBoolSetting } from "@/lib/server/platform-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,13 @@ export async function POST(
   }
   const userId = session.user.id;
   const { code } = params;
+
+  if (await getBoolSetting("SYSTEM_PAUSE_QUIZ", false)) {
+    return NextResponse.json(
+      { error: "Quiz games are temporarily paused. Please check back shortly." },
+      { status: 503 },
+    );
+  }
 
   const collection = await prisma.distributorCollection.findUnique({
     where: { publicLinkCode: code },

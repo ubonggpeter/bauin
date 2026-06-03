@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { getBoolSetting } from "@/lib/server/platform-settings";
 
 export type ApprovalResult = {
   approved: boolean;
@@ -43,6 +44,11 @@ export async function checkAutoApproval(
   userId: string,
   requestData: Record<string, unknown>
 ): Promise<ApprovalResult> {
+  // Emergency pause: skip auto-approval entirely → force manual review
+  if (await getBoolSetting("SYSTEM_PAUSE_AUTO_APPROVALS", false)) {
+    return { approved: false, decision: "MANUAL_REVIEW", isSampleReview: false };
+  }
+
   const rules = await prisma.autoApprovalRule.findMany({
     where: { ruleType, isActive: true },
     take: 1,

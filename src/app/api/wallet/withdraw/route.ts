@@ -49,6 +49,14 @@ export async function POST(req: Request) {
 
   // ── PlatformSettings ──────────────────────────────────────────
   const settings    = await getAllSettings();
+
+  if (settings["SYSTEM_PAUSE_WITHDRAWALS"] === "1") {
+    return NextResponse.json(
+      { error: "Withdrawals are temporarily paused. Please check back shortly." },
+      { status: 503 },
+    );
+  }
+
   const minAmount   = Math.max(0,   Number(settings["WITHDRAWAL_MIN_AMOUNT"]   ?? "500"));
   const maxAmount   = Math.max(100, Number(settings["WITHDRAWAL_MAX_AMOUNT"]   ?? "500000"));
   const allowedDays = (settings["WITHDRAWAL_ALLOWED_DAYS"] ?? "").trim(); // e.g. "1,2,3,4,5"

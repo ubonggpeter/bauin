@@ -34,3 +34,12 @@ export async function getBoolSetting(key: string, fallback: boolean): Promise<bo
 export async function invalidateSettingsCache(): Promise<void> {
   await cacheDel(CACHE_KEY);
 }
+
+export async function setSetting(key: string, value: string): Promise<void> {
+  await prisma.platformSettings.upsert({
+    where:  { key },
+    create: { key, value },
+    update: { value },
+  });
+  await invalidateSettingsCache();
+}
