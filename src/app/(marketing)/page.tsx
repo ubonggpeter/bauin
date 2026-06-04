@@ -780,9 +780,24 @@ function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/30">
-          <p>© {new Date().getFullYear()} BAUIN Platform. All rights reserved.</p>
-          <p>Built with ❤️ in Nigeria 🇳🇬</p>
+        <div className="border-t border-white/10 pt-8 flex flex-col items-center gap-4 text-xs text-white/30">
+          <div className="flex flex-wrap gap-x-5 gap-y-1.5 justify-center">
+            {[
+              { label: "Terms of Service",   href: "/terms" },
+              { label: "Privacy Policy",     href: "/privacy" },
+              { label: "Refund Policy",      href: "/refund-policy" },
+              { label: "Quiz Rules",         href: "/quiz-rules" },
+              { label: "Betting Disclaimer", href: "/betting-disclaimer" },
+            ].map((l) => (
+              <Link key={l.href} href={l.href} className="hover:text-white/70 transition-colors">
+                {l.label}
+              </Link>
+            ))}
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
+            <p>© {new Date().getFullYear()} BAUIN Platform. All rights reserved.</p>
+            <p>Built with ❤️ in Nigeria 🇳🇬</p>
+          </div>
         </div>
       </div>
     </footer>
