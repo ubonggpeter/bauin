@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getAllSettings } from "@/lib/server/platform-settings";
 import { onPaymentReferralCredit } from "@/lib/server/referral-earnings";
+import { recalculateStoryRating } from "@/lib/server/story-rating";
 
 export const dynamic = "force-dynamic";
 
@@ -295,6 +296,8 @@ export async function POST(req: Request) {
       distributorCollectionId: dc.id,
     };
   });
+
+  recalculateStoryRating(storyId).catch(() => {});
 
   return NextResponse.json({
     ...result,

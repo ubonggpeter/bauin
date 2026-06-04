@@ -311,6 +311,7 @@ model User {
   storyReports           StoryReport[]     @relation("ReportReporter")
   strikesReceived        StoryStrike[]     @relation("StrikeAuthor")
   strikesIssued          StoryStrike[]     @relation("StrikeIssuer")
+  storyReviews           StoryReview[]
 
   @@index([referredById])
   @@index([referralCode])
@@ -562,11 +563,16 @@ model Story {
   price          Decimal  @default(0) @db.Decimal(18, 2)
   niche          String?
   tags           String[]
-  royaltyEnabled Boolean  @default(false) @map("royalty_enabled")
-  royaltyPct     Decimal  @default(0) @db.Decimal(5, 2) @map("royalty_pct")
-  reportCount    Int      @default(0) @map("report_count")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  royaltyEnabled  Boolean  @default(false) @map("royalty_enabled")
+  royaltyPct      Decimal  @default(0) @db.Decimal(5, 2) @map("royalty_pct")
+  reportCount     Int      @default(0) @map("report_count")
+  rating          Decimal  @default(0) @db.Decimal(4, 2) @map("rating")
+  ratingCount     Int      @default(0) @map("rating_count")
+  avgStars        Decimal  @default(0) @db.Decimal(4, 2) @map("avg_stars")
+  isFeatured      Boolean  @default(false) @map("is_featured")
+  hiddenForReview Boolean  @default(false) @map("hidden_for_review")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   episodes      Episode[]
   purchases     StoryPurchase[]
@@ -574,9 +580,12 @@ model Story {
   collaborators StoryCollaborator[]
   reports       StoryReport[]
   strikes       StoryStrike[]
+  reviews       StoryReview[]
 
   @@index([niche])
   @@index([reportCount(sort: Desc)])
+  @@index([rating(sort: Desc)])
+  @@index([isFeatured])
   @@map("stories")
 }
 
@@ -1508,6 +1517,26 @@ model TournamentBet {
   @@index([tournamentId])
   @@index([userId])
   @@map("tournament_bets")
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║              STORY REVIEWS                   ║
+// ╚══════════════════════════════════════════════╝
+
+model StoryReview {
+  id        String   @id @default(cuid())
+  storyId   String   @map("story_id")
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+  stars     Int
+  comment   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([storyId, userId])
+  @@index([storyId])
+  @@map("story_reviews")
 }
 
 // ╔══════════════════════════════════════════════╗

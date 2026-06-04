@@ -21,6 +21,7 @@ import { invalidateCachedSession, invalidateCachedLeaderboard } from "@/lib/serv
 import { checkAchievements, checkEarningsMilestones } from "@/lib/server/achievements";
 import { push } from "@/lib/server/push";
 import type { Prisma } from "@prisma/client";
+import { recalculateStoryRating } from "@/lib/server/story-rating";
 
 export const dynamic = "force-dynamic";
 
@@ -179,12 +180,14 @@ export async function POST(
 
   // ── Find story author for royalty ─────────────────────────────
   let storyAuthorId: string | null = null;
+  let episodeStoryId: string | null = null;
   if (quizSession.episodeId) {
     const episode = await prisma.episode.findUnique({
       where:   { id: quizSession.episodeId },
-      include: { story: { select: { authorId: true } } },
+      include: { story: { select: { authorId: true, id: true } } },
     });
     storyAuthorId = episode?.story?.authorId ?? null;
+    episodeStoryId = episode?.story?.id ?? null;
   }
 
   // ── Find viewer referrers for entries ─────────────────────────
@@ -298,6 +301,9 @@ export async function POST(
   // ── Invalidate caches ─────────────────────────────────────────
   await invalidateCachedSession(quizSession.distributorCollection?.publicLinkCode ?? "");
   await invalidateCachedLeaderboard(sessionId);
+
+  // ── Recalculate story rating (fire-and-forget) ────────────────
+  if (episodeStoryId) recalculateStoryRating(episodeStoryId).catch(() => {});
 
   // ── Achievements (fire-and-forget) ────────────────────────────
   for (let i = 0; i < Math.min(3, summary.winnerCredits.length); i++) {
