@@ -278,6 +278,15 @@ export default function SellerAnalyticsPage() {
             </svg>
           </Link>
           <h1 className="font-black text-gray-900 text-base flex-1">Story Analytics</h1>
+          <Link
+            href="/dashboard/seller/payouts"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:border-primary hover:text-primary transition-colors"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+            </svg>
+            Payouts
+          </Link>
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/90 transition-colors"
