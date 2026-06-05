@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { getAllSettings } from "@/lib/server/platform-settings";
 import { onPaymentReferralCredit } from "@/lib/server/referral-earnings";
 import { recalculateStoryRating } from "@/lib/server/story-rating";
+import { trackPaymentRequest, extractIp } from "@/lib/server/rate-limit-tracker";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,9 @@ type PurchaseBody = {
 };
 
 export async function POST(req: Request) {
+  // Track every hit for payment-abuse auto-flag (20+/min → flagged in admin)
+  trackPaymentRequest(extractIp(req)).catch(() => {});
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
