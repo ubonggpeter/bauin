@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePaystackPayment } from "react-paystack";
 import { useSession } from "next-auth/react";
 import { LEARN_CATEGORIES } from "@/lib/learn-data";
+import FeedbackModal from "@/components/FeedbackModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -421,8 +422,14 @@ function PassScreen({
   result: TestResult;
   category: { name: string; icon: string } | undefined;
 }) {
+  const [showFeedback, setShowFeedback] = useState(false);
+
   useEffect(() => {
     fireGoldConfetti();
+    if (!localStorage.getItem("fb:cert:shown")) {
+      const t = setTimeout(() => setShowFeedback(true), 1200);
+      return () => clearTimeout(t);
+    }
   }, []);
 
   return (
@@ -460,6 +467,17 @@ function PassScreen({
       <Link href="/dashboard/explore" className="text-primary-light text-sm hover:text-white transition-colors">
         ← Back to Training
       </Link>
+
+      {showFeedback && (
+        <FeedbackModal
+          feature="CERTIFICATION"
+          delayMs={0}
+          onClose={() => {
+            localStorage.setItem("fb:cert:shown", "1");
+            setShowFeedback(false);
+          }}
+        />
+      )}
     </div>
   );
 }

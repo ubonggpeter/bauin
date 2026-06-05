@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
+import FeedbackModal from "@/components/FeedbackModal";
 
 // ── Types ──────────────────────────────────────────────────────────
 type FlashCard  = { id: string; front: string; back: string };
@@ -628,6 +629,11 @@ function ResultsScreen({ scores, rank, totalPlayers, onShare, showSavePrompt }: 
 }) {
   const t = useTranslations("GamePlay");
   const total = scores.reduce((a,b) => a+b, 0);
+  const [showFeedback, setShowFeedback] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setShowFeedback(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
   const max   = 500;
   const pct   = Math.round((total/max)*100);
   const phaseFullNames = [1,2,3,4,5].map((n) => t(`phaseFullNames.${n}` as "phaseFullNames.1"));
@@ -703,6 +709,13 @@ function ResultsScreen({ scores, rank, totalPlayers, onShare, showSavePrompt }: 
         </button>
       </div>
       {showSavePrompt && <SaveWinningsPrompt total={total} />}
+      {showFeedback && (
+        <FeedbackModal
+          feature="QUIZ"
+          delayMs={0}
+          onClose={() => setShowFeedback(false)}
+        />
+      )}
     </div>
   );
 }

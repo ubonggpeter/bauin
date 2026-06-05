@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import FeedbackModal from "@/components/FeedbackModal";
 
 const WalletLineChart = dynamic(() => import("@/components/charts/WalletLineChart"), { ssr: false });
 
@@ -152,6 +153,7 @@ export default function WalletPage() {
   const [data, setData]         = useState<WalletData | null>(null);
   const [loading, setLoading]   = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const [txFilter, setTxFilter] = useState<string>("ALL");
 
   function load() {
@@ -389,6 +391,20 @@ export default function WalletPage() {
             setShowModal(false);
             setData((prev) => prev ? { ...prev, balance: newBalance } : prev);
             load();
+            if (!localStorage.getItem("fb:withdrawal:shown")) {
+              setShowFeedback(true);
+            }
+          }}
+        />
+      )}
+
+      {showFeedback && (
+        <FeedbackModal
+          feature="WITHDRAWAL"
+          delayMs={600}
+          onClose={() => {
+            localStorage.setItem("fb:withdrawal:shown", "1");
+            setShowFeedback(false);
           }}
         />
       )}

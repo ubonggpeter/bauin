@@ -312,6 +312,7 @@ model User {
   strikesReceived        StoryStrike[]     @relation("StrikeAuthor")
   strikesIssued          StoryStrike[]     @relation("StrikeIssuer")
   storyReviews           StoryReview[]
+  feedback               Feedback[]
 
   @@index([referredById])
   @@index([referralCode])
@@ -1364,6 +1365,18 @@ model AffiliateReferral {
 // ║             SUPPORT / HELPDESK               ║
 // ╚══════════════════════════════════════════════╝
 
+enum FeedbackFeature {
+  CERTIFICATION
+  WITHDRAWAL
+  QUIZ
+}
+
+enum FeedbackScoreType {
+  STARS
+  THUMBS
+  EMOJI
+}
+
 enum SupportTicketStatus {
   BOT         // AI is handling; fewer than 3 AI replies
   OPEN        // Escalated to human, awaiting admin
@@ -1611,4 +1624,20 @@ model EmailCampaign {
 
   @@index([createdAt(sort: Desc)])
   @@map("email_campaigns")
+}
+
+model Feedback {
+  id        String            @id @default(cuid())
+  userId    String            @map("user_id")
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feature   FeedbackFeature
+  scoreType FeedbackScoreType
+  score     Int               // 1-5 for all types; THUMBS: down=1, up=5
+  comment   String?           @db.Text
+  metadata  Json?
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  @@index([feature, createdAt(sort: Desc)])
+  @@index([userId, feature])
+  @@map("feedback")
 }
