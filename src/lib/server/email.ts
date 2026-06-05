@@ -188,6 +188,25 @@ export async function sendStreakBonusEmail(
   } catch { /* non-critical */ }
 }
 
+const TX_LABELS: Record<string, string> = {
+  REFERRAL_BONUS:       "Referral Bonus",
+  JOB_PAYMENT:          "Job Payment",
+  JOB_ESCROW:           "Job Escrow",
+  BET_PAYOUT:           "Bet Payout",
+  LEADERBOARD_PRIZE:    "Leaderboard Prize",
+  ACHIEVEMENT_BONUS:    "Achievement Bonus",
+  STORY_PURCHASE:       "Story Sale",
+  BUNDLE_PURCHASE:      "Bundle Sale",
+  INVESTMENT_RETURN:    "Investment Return",
+  MILESTONE_BONUS:      "Milestone Bonus",
+  AFFILIATE_BONUS:      "Affiliate Bonus",
+  DEPOSIT:              "Deposit",
+};
+
+function txLabel(type: string) {
+  return TX_LABELS[type] ?? type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export async function sendWeeklyDigestEmail(
   to: string,
   name: string,
@@ -195,54 +214,129 @@ export async function sendWeeklyDigestEmail(
   weekEnd: string,
   totals: { type: string; amount: number }[],
   totalEarned: number,
+  opts?: {
+    role?: string;
+    jobsDone?: number;
+    storiesSold?: number;
+    quizPlayers?: number;
+  },
 ): Promise<void> {
   const apiKey = process.env.SENDGRID_API_KEY;
   if (!apiKey) return;
   sgMail.setApiKey(apiKey);
 
-  const rows = totals
-    .filter((t) => t.amount > 0)
-    .map(
-      (t) => `
+  const { role = "", jobsDone = 0, storiesSold = 0, quizPlayers = 0 } = opts ?? {};
+
+  // ── CTA based on role + activity ──────────────────────────────────
+  let ctaText = "Go to Dashboard →";
+  let ctaHref = `${APP_URL}/dashboard`;
+  if (role === "WORKER" && jobsDone > 0) {
+    ctaText = "Find More Jobs →";
+    ctaHref = `${APP_URL}/dashboard/jobs`;
+  } else if (role === "SELLER" && storiesSold > 0) {
+    ctaText = "View Story Earnings →";
+    ctaHref = `${APP_URL}/dashboard/seller/payouts`;
+  } else if (role === "DISTRIBUTOR" && quizPlayers > 0) {
+    ctaText = "Run Another Quiz →";
+    ctaHref = `${APP_URL}/dashboard/distributor`;
+  } else if (totalEarned >= 50000) {
+    ctaText = "Withdraw Your Earnings →";
+    ctaHref = `${APP_URL}/dashboard/wallet`;
+  }
+
+  // ── Earnings breakdown rows (only shown if >1 source) ────────────
+  const filtered = totals.filter((t) => t.amount > 0);
+  const breakdownRows = filtered.length > 1
+    ? filtered.map((t) => `
         <tr>
-          <td style="padding:8px 12px;color:#555;font-size:14px;border-bottom:1px solid #f0f0f0;">${t.type.replace(/_/g, " ")}</td>
-          <td style="padding:8px 12px;color:#1A6659;font-size:14px;font-weight:bold;border-bottom:1px solid #f0f0f0;text-align:right;">₦${t.amount.toLocaleString()}</td>
-        </tr>
-      `,
-    )
-    .join("");
+          <td style="padding:9px 14px;color:#555;font-size:14px;border-bottom:1px solid #f3f4f6;">${txLabel(t.type)}</td>
+          <td style="padding:9px 14px;color:#1A6659;font-size:14px;font-weight:700;border-bottom:1px solid #f3f4f6;text-align:right;">₦${t.amount.toLocaleString()}</td>
+        </tr>`).join("")
+    : "";
+
+  // ── Role-specific activity stat cells (table-based for email clients) ─
+  type StatItem = { value: string; label: string };
+  const stats: StatItem[] = [];
+  if (role === "WORKER"      && jobsDone   > 0) stats.push({ value: String(jobsDone),   label: "Jobs Completed" });
+  if (role === "SELLER"      && storiesSold > 0) stats.push({ value: String(storiesSold), label: "Stories Sold" });
+  if (role === "DISTRIBUTOR" && quizPlayers > 0) stats.push({ value: String(quizPlayers), label: "Quiz Players" });
+
+  const activitySection = stats.length > 0 ? `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
+      <tr>
+        ${stats.map((s) => `
+          <td style="text-align:center;background:#f0faf7;border-radius:12px;padding:18px 12px;width:${Math.floor(100/stats.length)}%;">
+            <div style="font-size:30px;font-weight:900;color:#1A6659;line-height:1;">${s.value}</div>
+            <div style="font-size:12px;color:#6b7280;margin-top:4px;">${s.label}</div>
+          </td>`).join('<td style="width:8px;"></td>')}
+      </tr>
+    </table>` : "";
+
+  const fmt = `₦${Math.round(totalEarned).toLocaleString()}`;
+  const subject = totalEarned >= 50000
+    ? `💰 You earned ${fmt} on BAUIN this week!`
+    : `Your BAUIN week in review — ${fmt} earned`;
 
   try {
     await sgMail.send({
       to,
       from: process.env.EMAIL_FROM ?? "noreply@bauin.com",
-      subject: `Your BAUIN weekly summary — ₦${totalEarned.toLocaleString()} earned`,
+      subject,
       html: `
-        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#f5f7f6;padding:20px;">
-          ${emailHeader()}
-          <div style="background:white;padding:36px 32px;border-radius:0 0 16px 16px;border:1px solid #e0e0e0;border-top:none;">
-            <h2 style="color:#1A1A2E;margin-top:0;">Weekly Earnings Summary</h2>
-            <p style="color:#888;font-size:13px;margin-top:-8px;">${weekStart} – ${weekEnd}</p>
-            <p style="color:#555;font-size:15px;">Hi ${name}, here's what you earned on BAUIN this week:</p>
-            ${rows ? `
-              <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;background:#f5f7f6;padding:20px;">
+
+          <!-- Header -->
+          <div style="background:linear-gradient(135deg,#1A6659,#0E4A3D);padding:36px 32px 28px;text-align:center;border-radius:16px 16px 0 0;">
+            <h1 style="color:#F0B429;margin:0 0 4px;font-size:30px;font-weight:900;letter-spacing:3px;">BAUIN</h1>
+            <p style="color:rgba(255,255,255,0.55);margin:0 0 14px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Billionaires AI Users Income Network</p>
+            <div style="display:inline-block;background:rgba(255,255,255,0.12);border-radius:999px;padding:4px 16px;">
+              <span style="color:rgba(255,255,255,0.75);font-size:12px;">📅 ${weekStart} – ${weekEnd}</span>
+            </div>
+          </div>
+
+          <!-- Body -->
+          <div style="background:white;padding:36px 32px;border-radius:0 0 16px 16px;border:1px solid #e5e7eb;border-top:none;">
+
+            <p style="color:#374151;font-size:15px;margin:0 0 24px;">Hi <strong>${name}</strong>, here's your weekly recap on BAUIN 👋</p>
+
+            <!-- Gold earnings hero -->
+            <div style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-radius:16px;padding:26px 28px;text-align:center;margin-bottom:20px;">
+              <p style="color:#92400E;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:0 0 8px;">Total Earned This Week</p>
+              <p style="color:#1A1A2E;font-size:44px;font-weight:900;margin:0;letter-spacing:-1px;line-height:1;">${fmt}</p>
+            </div>
+
+            ${breakdownRows ? `
+              <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 20px;">
                 <thead>
-                  <tr style="background:#f9f9f9;">
-                    <th style="padding:10px 12px;text-align:left;color:#888;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Source</th>
-                    <th style="padding:10px 12px;text-align:right;color:#888;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Amount</th>
+                  <tr style="background:#f9fafb;">
+                    <th style="padding:9px 14px;text-align:left;color:#9ca3af;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Source</th>
+                    <th style="padding:9px 14px;text-align:right;color:#9ca3af;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Amount</th>
                   </tr>
                 </thead>
-                <tbody>${rows}</tbody>
-                <tfoot>
-                  <tr style="background:#f0faf7;">
-                    <td style="padding:12px;font-weight:bold;color:#1A6659;">Total</td>
-                    <td style="padding:12px;font-weight:bold;color:#1A6659;text-align:right;">₦${totalEarned.toLocaleString()}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            ` : `<p style="color:#888;font-style:italic;">No earnings recorded this week — log in and get active!</p>`}
-            <a href="${APP_URL}/dashboard" style="display:inline-block;background:#1A6659;color:white;font-weight:bold;padding:12px 28px;border-radius:999px;text-decoration:none;font-size:14px;margin-top:8px;">Go to Dashboard →</a>
+                <tbody>${breakdownRows}</tbody>
+              </table>` : ""}
+
+            ${activitySection}
+
+            <!-- CTA -->
+            <div style="text-align:center;margin-top:28px;">
+              <a href="${ctaHref}"
+                style="display:inline-block;background:#1A6659;color:white;font-weight:700;padding:14px 36px;border-radius:999px;text-decoration:none;font-size:15px;">
+                ${ctaText}
+              </a>
+            </div>
+
+            <!-- Footer note -->
+            <p style="color:#d1d5db;font-size:12px;text-align:center;margin:28px 0 0;">
+              Keep growing. Your next milestone is within reach.
+            </p>
           </div>
+
+          <!-- Email footer -->
+          <p style="color:#9ca3af;font-size:11px;text-align:center;margin:16px 0 0;">
+            You're receiving this because you have an active BAUIN account.<br>
+            <a href="${APP_URL}/dashboard/settings" style="color:#9ca3af;">Manage email preferences</a>
+          </p>
         </div>
       `,
     });
