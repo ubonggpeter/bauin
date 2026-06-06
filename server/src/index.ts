@@ -11,6 +11,7 @@ import networkRouter from "./routes/network";
 import paymentsRouter from "./routes/payments";
 import adminAutoApprovalRouter from "./routes/admin/auto-approval";
 import adminAuthRouter from "./routes/admin/auth";
+import { createMetricsRouter } from "./routes/admin/metrics";
 import uploadRouter from "./routes/upload";
 import { prisma } from "./utils/prisma";
 import { getRedis } from "./utils/redis";
@@ -48,6 +49,7 @@ app.use("/api/network", networkRouter);
 app.use("/api/payments", paymentsRouter);
 app.use("/api/admin/auto-approval", adminAutoApprovalRouter);
 app.use("/api/admin/auth", adminAuthRouter);
+app.use("/api/admin/metrics", createMetricsRouter(io));
 app.use("/api/upload", uploadRouter);
 
 app.get("/api/health", async (_req, res) => {
