@@ -1,5 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -309,12 +311,13 @@ function BuyerJobCard({
 // ── Worker tab ────────────────────────────────────────────────────────────────
 
 function WorkerTab() {
+  const online = useOnlineStatus();
+
   const [jobs, setJobs]         = useState<Job[]>([]);
   const [loading, setLoading]   = useState(true);
   const [applying, setApplying] = useState<string | null>(null);
   const [noCerts, setNoCerts]   = useState(false);
   const [note, setNote]         = useState("");
-  const [toast, setToast]       = useState("");
 
   useEffect(() => {
     fetch("/api/jobs?view=worker&limit=30")
@@ -326,9 +329,57 @@ function WorkerTab() {
       .finally(() => setLoading(false));
   }, []);
 
+  // ── Auto-retry queued applications on reconnect ───────────────
+  useEffect(() => {
+    if (!online) return;
+    const raw = localStorage.getItem("bauin-job-queue");
+    if (!raw) return;
+    const queue: { jobId: string; coverNote: string }[] = JSON.parse(raw);
+    if (queue.length === 0) return;
+    toast.loading(`Submitting ${queue.length} saved application${queue.length > 1 ? "s" : ""}…`, { id: "job-queue" });
+
+    Promise.allSettled(
+      queue.map(({ jobId, coverNote }) =>
+        fetch(`/api/jobs/${jobId}/apply`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ coverNote }),
+        }).then((r) => r.ok ? r.json() : Promise.reject()),
+      ),
+    ).then((results) => {
+      const succeeded = results.filter((r) => r.status === "fulfilled").length;
+      const remaining = queue.filter((_, i) => results[i].status === "rejected");
+      if (remaining.length === 0) {
+        localStorage.removeItem("bauin-job-queue");
+      } else {
+        localStorage.setItem("bauin-job-queue", JSON.stringify(remaining));
+      }
+      setJobs((prev) =>
+        prev.map((j) => {
+          const wasQueued = queue.find((q) => q.jobId === j.id);
+          const succeeded = results[queue.findIndex((q) => q.jobId === j.id)]?.status === "fulfilled";
+          return wasQueued && succeeded ? { ...j, applied: true } : j;
+        }),
+      );
+      if (succeeded > 0) toast.success(`${succeeded} application${succeeded > 1 ? "s" : ""} sent!`, { id: "job-queue" });
+      else toast.error("Could not submit applications", { id: "job-queue", duration: 4000 });
+    });
+  }, [online]);
+
   async function handleApply(jobId: string) {
     setApplying(jobId);
     try {
+      if (!online) {
+        // Queue for later
+        const raw = localStorage.getItem("bauin-job-queue");
+        const queue: { jobId: string; coverNote: string }[] = raw ? JSON.parse(raw) : [];
+        if (!queue.find((q) => q.jobId === jobId)) {
+          queue.push({ jobId, coverNote: note });
+          localStorage.setItem("bauin-job-queue", JSON.stringify(queue));
+        }
+        toast("Saved — will apply when you're back online", { icon: "📌", id: `apply-${jobId}` });
+        return;
+      }
+
       const res = await fetch(`/api/jobs/${jobId}/apply`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -336,14 +387,23 @@ function WorkerTab() {
       });
       if (res.ok) {
         setJobs((prev) => prev.map((j) => j.id === jobId ? { ...j, applied: true } : j));
-        setToast("Application sent!");
-        setTimeout(() => setToast(""), 3000);
+        toast.success("Application sent!", { id: `apply-${jobId}` });
       } else {
         const d = await res.json();
-        setToast(d.error ?? "Application failed");
-        setTimeout(() => setToast(""), 4000);
+        toast.error(d.error ?? "Application failed", { id: `apply-${jobId}`, duration: 4000 });
       }
-    } finally { setApplying(null); }
+    } catch {
+      // Network error — queue it
+      const raw = localStorage.getItem("bauin-job-queue");
+      const queue: { jobId: string; coverNote: string }[] = raw ? JSON.parse(raw) : [];
+      if (!queue.find((q) => q.jobId === jobId)) {
+        queue.push({ jobId, coverNote: note });
+        localStorage.setItem("bauin-job-queue", JSON.stringify(queue));
+      }
+      toast("Saved — will apply when you're back online", { icon: "📌", id: `apply-${jobId}` });
+    } finally {
+      setApplying(null);
+    }
   }
 
   if (loading) return (
@@ -374,11 +434,6 @@ function WorkerTab() {
 
   return (
     <div>
-      {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-text-dark text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg">
-          {toast}
-        </div>
-      )}
       <div className="mb-4">
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
           Cover note (optional — shown to all jobs you apply to)

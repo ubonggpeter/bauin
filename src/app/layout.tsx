@@ -4,6 +4,7 @@ import "./globals.css";
 import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
 import InstallBanner from "@/components/pwa/InstallBanner";
 import PushManager from "@/components/pwa/PushManager";
+import NetworkStatusToast from "@/components/NetworkStatusToast";
 import MaintenanceOverlay from "@/components/MaintenanceOverlay";
 import MilestoneBanner from "@/components/MilestoneBanner";
 import { JsonLd } from "@/components/JsonLd";
@@ -157,6 +158,7 @@ export default async function RootLayout({
             <MilestoneBanner />
             {children}
             <MaintenanceOverlay />
+            <NetworkStatusToast />
             <ServiceWorkerRegistration />
             <InstallBanner />
             <PushManager />

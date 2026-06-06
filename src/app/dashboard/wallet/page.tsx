@@ -4,6 +4,8 @@ import dynamic from "next/dynamic";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import FeedbackModal from "@/components/FeedbackModal";
+import toast from "react-hot-toast";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const WalletLineChart = dynamic(() => import("@/components/charts/WalletLineChart"), { ssr: false });
 
@@ -35,15 +37,34 @@ const TX_META: Record<string, { label: string; color: string; bg: string }> = {
 };
 
 // ── Withdrawal modal ──────────────────────────────────────────────
+const WITHDRAW_SAVE_KEY = "bauin-withdraw-draft";
+
 function WithdrawModal({ balance, onClose, onSuccess }: {
   balance: number; onClose: () => void; onSuccess: (newBalance: number) => void;
 }) {
-  const [amount, setAmount]     = useState("");
-  const [account, setAccount]   = useState("");
-  const [bank, setBank]         = useState("");
-  const [name, setName]         = useState("");
+  const online = useOnlineStatus();
+
+  // Pre-fill from saved draft on mount
+  const [amount, setAmount]     = useState(() => {
+    try { return JSON.parse(localStorage.getItem(WITHDRAW_SAVE_KEY) ?? "{}").amount ?? ""; } catch { return ""; }
+  });
+  const [account, setAccount]   = useState(() => {
+    try { return JSON.parse(localStorage.getItem(WITHDRAW_SAVE_KEY) ?? "{}").account ?? ""; } catch { return ""; }
+  });
+  const [bank, setBank]         = useState(() => {
+    try { return JSON.parse(localStorage.getItem(WITHDRAW_SAVE_KEY) ?? "{}").bank ?? ""; } catch { return ""; }
+  });
+  const [name, setName]         = useState(() => {
+    try { return JSON.parse(localStorage.getItem(WITHDRAW_SAVE_KEY) ?? "{}").name ?? ""; } catch { return ""; }
+  });
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
+  const hasDraft = typeof window !== "undefined" && !!localStorage.getItem(WITHDRAW_SAVE_KEY);
+
+  useEffect(() => {
+    if (online && hasDraft) toast("Withdrawal draft restored — you're back online", { icon: "📋", id: "withdraw-draft" });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [online]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -51,6 +72,14 @@ function WithdrawModal({ balance, onClose, onSuccess }: {
     const amt = Number(amount);
     if (!amt || amt < 500) { setError("Minimum withdrawal is ₦500"); return; }
     if (amt > balance)      { setError("Insufficient balance"); return; }
+
+    if (!online) {
+      // Save draft — user submits manually when back online
+      try { localStorage.setItem(WITHDRAW_SAVE_KEY, JSON.stringify({ amount, account, bank, name })); } catch { /* ignore */ }
+      setError("You're offline. Your details have been saved — submit when you're back online.");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/wallet/withdraw", {
@@ -60,9 +89,13 @@ function WithdrawModal({ balance, onClose, onSuccess }: {
       });
       const json = await res.json();
       if (!res.ok) { setError(json.error ?? "Request failed"); return; }
+      // Clear any saved draft on success
+      try { localStorage.removeItem(WITHDRAW_SAVE_KEY); } catch { /* ignore */ }
       onSuccess(json.newBalance);
     } catch {
-      setError("Network error. Try again.");
+      // Network error — save draft for manual retry
+      try { localStorage.setItem(WITHDRAW_SAVE_KEY, JSON.stringify({ amount, account, bank, name })); } catch { /* ignore */ }
+      setError("Connection lost. Your details have been saved — submit when you're back online.");
     } finally {
       setLoading(false);
     }
@@ -85,6 +118,15 @@ function WithdrawModal({ balance, onClose, onSuccess }: {
           <span className="text-sm text-gray-500">Available balance</span>
           <span className="font-bold text-primary text-lg">₦{balance.toLocaleString()}</span>
         </div>
+
+        {hasDraft && (
+          <div className="mb-3 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-xs text-amber-700">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4 flex-shrink-0">
+              <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/>
+            </svg>
+            Draft restored from last session
+          </div>
+        )}
 
         <form onSubmit={submit} className="space-y-4">
           <div>

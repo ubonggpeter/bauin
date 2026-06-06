@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import FeedbackModal from "@/components/FeedbackModal";
+import toast from "react-hot-toast";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 // ── Types ──────────────────────────────────────────────────────────
 type FlashCard  = { id: string; front: string; back: string };
@@ -750,15 +752,18 @@ export default function QuizPlayPage() {
   const router             = useRouter();
   const { status: authStatus } = useSession();
 
-  const [phase,       setPhase]       = useState<Phase>("loading");
-  const [showResult,  setShowResult]  = useState(false);
-  const [showWinner,  setShowWinner]  = useState(false);
-  const [content,     setContent]     = useState<GameContent|null>(null);
-  const [entryId,     setEntryId]     = useState<string|null>(null);
-  const [scores,      setScores]      = useState<number[]>([]);
-  const [rank,        setRank]        = useState<number|null>(null);
-  const [totalPlayers,setTotalPlayers]= useState(0);
-  const [submitting,  setSubmitting]  = useState(false);
+  const online = useOnlineStatus();
+
+  const [phase,            setPhase]            = useState<Phase>("loading");
+  const [showResult,       setShowResult]        = useState(false);
+  const [showWinner,       setShowWinner]        = useState(false);
+  const [content,          setContent]           = useState<GameContent|null>(null);
+  const [entryId,          setEntryId]           = useState<string|null>(null);
+  const [scores,           setScores]            = useState<number[]>([]);
+  const [rank,             setRank]              = useState<number|null>(null);
+  const [totalPlayers,     setTotalPlayers]      = useState(0);
+  const [submitting,       setSubmitting]        = useState(false);
+  const [scorePending,     setScorePending]      = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -769,6 +774,24 @@ export default function QuizPlayPage() {
         const info = await infoRes.json();
         if (!mounted) return;
         setContent(info.gameContent);
+
+        // ── Restore saved phase progress ──────────────────────────
+        try {
+          const raw = localStorage.getItem(`bauin-quiz:${code}`);
+          if (raw) {
+            const sp = JSON.parse(raw) as { scores: number[]; phase: number; entryId: string; savedAt: number };
+            if (Date.now() - sp.savedAt < 2 * 3600_000 && sp.entryId) {
+              setScores(sp.scores);
+              setEntryId(sp.entryId);
+              const nextPhase = Math.min(sp.phase + 1, 5) as Phase;
+              if (mounted) setPhase(nextPhase);
+              toast("Resumed from saved progress", { icon: "🔄", id: "quiz-resume" });
+              return;
+            }
+            localStorage.removeItem(`bauin-quiz:${code}`);
+          }
+        } catch { /* ignore */ }
+
         const joinRes = await fetch(`/api/quiz/${code}/join`, { method:"POST" });
         if (joinRes.ok) { const j = await joinRes.json(); if (mounted) setEntryId(j.entryId); }
         if (mounted) setPhase("intro");
@@ -778,43 +801,95 @@ export default function QuizPlayPage() {
   }, [code, router]);
 
   function recordScore(phaseNum: number, score: number) {
-    setScores((prev) => { const n=[...prev]; n[phaseNum-1]=score; return n; });
+    setScores((prev) => {
+      const n = [...prev];
+      n[phaseNum - 1] = score;
+      // Persist phase progress so a network drop doesn't lose progress
+      try {
+        if (entryId) {
+          localStorage.setItem(`bauin-quiz:${code}`, JSON.stringify({
+            scores: n, phase: phaseNum, entryId, savedAt: Date.now(),
+          }));
+        }
+      } catch { /* ignore */ }
+      return n;
+    });
     setShowResult(true);
+  }
+
+  async function submitScore(eid: string, finalScores: number[]) {
+    const res = await fetch(`/api/quiz/${code}/score`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        entryId:     eid,
+        phase1Score: finalScores[0] ?? 0,
+        phase2Score: finalScores[1] ?? 0,
+        phase3Score: finalScores[2] ?? 0,
+        phase4Score: finalScores[3] ?? 0,
+        phase5Score: finalScores[4] ?? 0,
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json() as Promise<{ rank: number; totalPlayers: number }>;
   }
 
   async function advanceFromResult() {
     setShowResult(false);
     const cur = typeof phase === "number" ? phase : 0;
     if (cur < 5) {
-      setPhase((cur+1) as Phase);
+      setPhase((cur + 1) as Phase);
     } else {
       if (entryId) {
         setSubmitting(true);
         try {
-          const finalScores = scores; // captured in closure
-          const res = await fetch(`/api/quiz/${code}/score`, {
-            method: "POST",
-            headers: { "Content-Type":"application/json" },
-            body: JSON.stringify({
-              entryId,
-              phase1Score: finalScores[0]??0,
-              phase2Score: finalScores[1]??0,
-              phase3Score: finalScores[2]??0,
-              phase4Score: finalScores[3]??0,
-              phase5Score: finalScores[4]??0,
-            }),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            setRank(data.rank);
-            setTotalPlayers(data.totalPlayers ?? 1);
-            if (data.rank === 1) { setShowWinner(true); }
-          }
-        } finally { setSubmitting(false); }
+          const finalScores = scores;
+          const data = await submitScore(entryId, finalScores);
+          setRank(data.rank);
+          setTotalPlayers(data.totalPlayers ?? 1);
+          if (data.rank === 1) setShowWinner(true);
+          // Clear saved progress — successfully submitted
+          try {
+            localStorage.removeItem(`bauin-quiz:${code}`);
+            localStorage.removeItem(`bauin-quiz-score:${code}`);
+          } catch { /* ignore */ }
+        } catch {
+          // Save for retry on reconnect
+          try {
+            localStorage.setItem(`bauin-quiz-score:${code}`, JSON.stringify({
+              entryId, scores, savedAt: Date.now(),
+            }));
+          } catch { /* ignore */ }
+          setScorePending(true);
+          toast.error("Couldn't submit score — saved for retry", { id: "quiz-score", duration: 6000 });
+        } finally {
+          setSubmitting(false);
+        }
       }
       setPhase("done");
     }
   }
+
+  // ── Auto-retry score submission on reconnect ──────────────────
+  useEffect(() => {
+    if (!online || !scorePending) return;
+    const raw = localStorage.getItem(`bauin-quiz-score:${code}`);
+    if (!raw) { setScorePending(false); return; }
+    const { entryId: eid, scores: savedScores } = JSON.parse(raw) as { entryId: string; scores: number[]; savedAt: number };
+    toast.loading("Submitting your score…", { id: "quiz-score" });
+    submitScore(eid, savedScores)
+      .then((data) => {
+        setRank(data.rank);
+        setTotalPlayers(data.totalPlayers ?? 1);
+        if (data.rank === 1) setShowWinner(true);
+        localStorage.removeItem(`bauin-quiz-score:${code}`);
+        localStorage.removeItem(`bauin-quiz:${code}`);
+        setScorePending(false);
+        toast.success("Score submitted! 🎉", { id: "quiz-score" });
+      })
+      .catch(() => toast.error("Still couldn't submit. Will retry.", { id: "quiz-score", duration: 4000 }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [online, scorePending, code]);
 
   function handleShare() {
     const total = scores.reduce((a,b)=>a+b,0);
