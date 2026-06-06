@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import FeedbackModal from "@/components/FeedbackModal";
 import toast from "react-hot-toast";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { AnimatePresence, motion } from "framer-motion";
 
 // ── Types ──────────────────────────────────────────────────────────
 type FlashCard  = { id: string; front: string; back: string };
@@ -664,12 +665,17 @@ function ResultsScreen({ scores, rank, totalPlayers, onShare, showSavePrompt }: 
 
         {/* Rank */}
         {rank && (
-          <div className="flex items-center justify-center gap-2 mb-4">
+          <motion.div
+            initial={{ scale: 0.4, y: -16, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 280, damping: 14, delay: 0.6 }}
+            className="flex items-center justify-center gap-2 mb-4"
+          >
             <span className="text-2xl">{rankLabel}</span>
             <span className="text-white/70 text-sm font-medium">
               {t("results.rankOf", { rank, total: totalPlayers })}
             </span>
-          </div>
+          </motion.div>
         )}
 
         {/* Score */}
@@ -945,11 +951,21 @@ export default function QuizPlayPage() {
   return (
     <div>
       <PhaseBar phase={phase} />
-      {phase===1 && <Phase1Flash   cards={content.flashCards}     onDone={(s)=>recordScore(1,s)} />}
-      {phase===2 && <Phase2Memory  pairs={content.memoryPairs}    onDone={(s)=>recordScore(2,s)} />}
-      {phase===3 && <Phase3Sequence items={content.sequence}      onDone={(s)=>recordScore(3,s)} />}
-      {phase===4 && <Phase4FillGap  questions={content.fillGap}   onDone={(s)=>recordScore(4,s)} />}
-      {phase===5 && <Phase5TrueFalse questions={content.trueFalse} onDone={(s)=>recordScore(5,s)} />}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={typeof phase === "number" ? phase : "other"}
+          initial={{ x: 48, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: -48, opacity: 0 }}
+          transition={{ duration: 0.22, ease: [0.32, 0, 0.67, 0] }}
+        >
+          {phase===1 && <Phase1Flash    cards={content.flashCards}      onDone={(s)=>recordScore(1,s)} />}
+          {phase===2 && <Phase2Memory   pairs={content.memoryPairs}     onDone={(s)=>recordScore(2,s)} />}
+          {phase===3 && <Phase3Sequence items={content.sequence}        onDone={(s)=>recordScore(3,s)} />}
+          {phase===4 && <Phase4FillGap  questions={content.fillGap}     onDone={(s)=>recordScore(4,s)} />}
+          {phase===5 && <Phase5TrueFalse questions={content.trueFalse}  onDone={(s)=>recordScore(5,s)} />}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

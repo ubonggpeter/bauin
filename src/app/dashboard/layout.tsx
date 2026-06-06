@@ -6,6 +6,8 @@ import SupportWidget from "@/components/SupportWidget";
 import { useTheme } from "@/context/ThemeContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import AnnouncementBanners from "@/components/AnnouncementBanners";
+import NotificationBell from "@/components/NotificationBell";
+import { AnimatePresence, motion } from "framer-motion";
 
 // Items shown in the mobile bottom tab bar (≤5 to fit 375 px)
 const MOBILE_TAB_LABELS = ["Home", "Explore", "Compete", "Wallet", "Profile"];
@@ -343,6 +345,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
+        {/* Notification bell */}
+        <div className="px-2 pb-1">
+          <NotificationBell collapsed={collapsed} />
+        </div>
+
         {/* Collapse toggle + theme + sign out */}
         <div className={`px-2 pb-4 flex flex-col gap-1 border-t border-white/10 pt-3 ${collapsed ? "items-center" : ""}`}>
           <button
@@ -388,7 +395,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }`}
       >
         <AnnouncementBanners />
-        {children}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* ── Mobile bottom tab bar ── */}

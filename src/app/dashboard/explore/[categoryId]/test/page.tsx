@@ -2,6 +2,7 @@
 import confetti from "canvas-confetti";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { usePaystackPayment } from "react-paystack";
 import { useSession } from "next-auth/react";
 import { LEARN_CATEGORIES } from "@/lib/learn-data";
@@ -435,14 +436,27 @@ function PassScreen({
   return (
     <div className="min-h-screen bg-primary flex flex-col items-center justify-center p-4 text-white">
       {/* White checkmark circle */}
-      <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center mb-6 shadow-xl">
+      <motion.div
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.1 }}
+        className="w-24 h-24 rounded-full bg-white flex items-center justify-center mb-6 shadow-xl"
+      >
         <svg viewBox="0 0 24 24" fill="none" stroke="#1A6659" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12">
           <polyline points="20 6 9 17 4 12" />
         </svg>
-      </div>
+      </motion.div>
 
-      <p className="text-primary-light text-sm font-medium mb-1">{category?.name ?? "Certification"}</p>
-      <h1 className="text-3xl font-black text-gold mb-2">Congratulations!</h1>
+      <motion.p
+        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35, duration: 0.3 }}
+        className="text-primary-light text-sm font-medium mb-1"
+      >{category?.name ?? "Certification"}</motion.p>
+      <motion.h1
+        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.45, duration: 0.3 }}
+        className="text-3xl font-black text-gold mb-2"
+      >Congratulations!</motion.h1>
       <p className="text-white/80 text-base mb-6">You passed the certification test.</p>
 
       {/* Score chip */}

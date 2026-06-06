@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 
 const CATEGORIES = [
   { id: "ai-content", icon: "✍️", name: "AI Content" },
@@ -216,8 +217,11 @@ export default function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredJobs.map((job) => (
-              <div
+              <motion.div
                 key={job.id}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 className="bg-white border border-border rounded-2xl p-4 hover:border-primary/40 hover:shadow-sm transition-all cursor-pointer group"
               >
                 <div className="flex items-start justify-between gap-2 mb-3">
@@ -239,7 +243,7 @@ export default function DashboardPage() {
                   <span className="text-xs text-gray-400">·</span>
                   <span className="text-xs text-gray-400">{job.applicants} applied</span>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}

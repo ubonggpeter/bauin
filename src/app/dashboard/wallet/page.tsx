@@ -6,6 +6,8 @@ import "react-loading-skeleton/dist/skeleton.css";
 import FeedbackModal from "@/components/FeedbackModal";
 import toast from "react-hot-toast";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import AnimatedNumber from "@/components/AnimatedNumber";
+import { motion } from "framer-motion";
 
 const WalletLineChart = dynamic(() => import("@/components/charts/WalletLineChart"), { ssr: false });
 
@@ -162,12 +164,13 @@ function WithdrawModal({ balance, onClose, onSuccess }: {
             />
           </div>
           {error && <p className="text-sm text-red-500 bg-red-50 rounded-xl px-4 py-2.5">{error}</p>}
-          <button
+          <motion.button
             type="submit" disabled={loading}
+            whileTap={{ scale: 0.97 }}
             className="w-full bg-gold text-text-dark font-bold py-3.5 rounded-xl hover:bg-yellow-400 transition-colors disabled:opacity-60 text-sm"
           >
             {loading ? "Processing…" : "Submit Withdrawal Request"}
-          </button>
+          </motion.button>
         </form>
       </div>
     </div>
@@ -176,17 +179,23 @@ function WithdrawModal({ balance, onClose, onSuccess }: {
 
 // ── Balance card ──────────────────────────────────────────────────
 function BalanceCard({
-  label, value, sub, dark, action,
+  label, rawValue, sub, dark, action,
 }: {
-  label: string; value: string; sub?: string; dark?: boolean; action?: React.ReactNode;
+  label: string; rawValue: number; sub?: string; dark?: boolean; action?: React.ReactNode;
 }) {
   return (
-    <div className={`rounded-2xl p-5 flex flex-col gap-1 ${dark ? "bg-primary text-white" : "bg-white border border-border"}`}>
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      className={`rounded-2xl p-5 flex flex-col gap-1 ${dark ? "bg-primary text-white" : "bg-white border border-border"}`}
+    >
       <p className={`text-xs font-medium ${dark ? "text-primary-light" : "text-gray-400"}`}>{label}</p>
-      <p className={`text-3xl font-black mt-1 ${dark ? "text-white" : "text-text-dark"}`}>{value}</p>
+      <p className={`text-3xl font-black mt-1 ${dark ? "text-white" : "text-text-dark"}`}>
+        ₦<AnimatedNumber to={rawValue} duration={900} />
+      </p>
       {sub && <p className={`text-xs mt-0.5 ${dark ? "text-primary-light/80" : "text-gray-400"}`}>{sub}</p>}
       {action && <div className="mt-3">{action}</div>}
-    </div>
+    </motion.div>
   );
 }
 
@@ -261,25 +270,26 @@ export default function WalletPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <BalanceCard
                 dark label="Available Balance"
-                value={`₦${data.balance.toLocaleString()}`}
+                rawValue={data.balance}
                 sub="Ready to withdraw"
                 action={
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
                     onClick={() => setShowModal(true)}
                     className="bg-gold text-text-dark text-xs font-bold px-4 py-2 rounded-lg hover:bg-yellow-400 transition-colors"
                   >
                     Withdraw
-                  </button>
+                  </motion.button>
                 }
               />
               <BalanceCard
                 label="Total Earned"
-                value={`₦${data.totalEarned.toLocaleString()}`}
+                rawValue={data.totalEarned}
                 sub="All-time earnings"
               />
               <BalanceCard
                 label="Total Withdrawn"
-                value={`₦${data.totalWithdrawn.toLocaleString()}`}
+                rawValue={data.totalWithdrawn}
                 sub="All-time withdrawals"
               />
             </div>
@@ -324,9 +334,11 @@ export default function WalletPage() {
                   </span>
                 </div>
                 <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-gold to-yellow-400 rounded-full transition-all duration-700"
-                    style={{ width: `${Math.min(data.viewerLocked.recruits / data.viewerLocked.unlockThreshold * 100, 100)}%` }}
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-gold to-yellow-400 rounded-full"
+                    initial={{ width: "0%" }}
+                    animate={{ width: `${Math.min(data.viewerLocked.recruits / data.viewerLocked.unlockThreshold * 100, 100)}%` }}
+                    transition={{ duration: 1.1, ease: "easeOut", delay: 0.4 }}
                   />
                 </div>
                 <p className="text-[11px] text-gray-400 mt-1.5">
