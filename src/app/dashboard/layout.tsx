@@ -6,6 +6,7 @@ import SupportWidget from "@/components/SupportWidget";
 import { useTheme } from "@/context/ThemeContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import AnnouncementBanners from "@/components/AnnouncementBanners";
+import WhatsNewBanner from "@/components/WhatsNewBanner";
 import NotificationBell from "@/components/NotificationBell";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -394,6 +395,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           collapsed ? "lg:ml-16" : "lg:ml-64"
         }`}
       >
+        <WhatsNewBanner />
         <AnnouncementBanners />
         <AnimatePresence mode="wait" initial={false}>
           <motion.div

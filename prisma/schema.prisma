@@ -1641,3 +1641,30 @@ model Feedback {
   @@index([userId, feature])
   @@map("feedback")
 }
+
+// ╔══════════════════════════════════════════════╗
+// ║               CHANGELOG                     ║
+// ╚══════════════════════════════════════════════╝
+
+enum ChangelogCategory {
+  FEATURE
+  IMPROVEMENT
+  BUGFIX
+  SECURITY
+  BREAKING
+}
+
+model Changelog {
+  id          String            @id @default(cuid())
+  version     String
+  date        DateTime
+  category    ChangelogCategory
+  title       String
+  description String            @db.Text
+  createdById String            @map("created_by_id")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  @@index([date(sort: Desc)])
+  @@map("changelog_entries")
+}
